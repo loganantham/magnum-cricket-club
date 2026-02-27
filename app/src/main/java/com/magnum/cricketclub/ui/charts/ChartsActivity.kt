@@ -76,28 +76,9 @@ class ChartsActivity : AppCompatActivity() {
                 finish()
                 true
             }
-            R.id.menu_home -> {
-                startActivity(Intent(this, HomeActivity::class.java))
-                true
-            }
-            R.id.menu_expenses -> {
-                startActivity(Intent(this, MainActivity::class.java))
-                true
-            }
-            R.id.menu_incomes -> {
-                startActivity(Intent(this, IncomesActivity::class.java))
-                true
-            }
-            R.id.menu_expense_types -> {
-                startActivity(Intent(this, ExpenseTypesActivity::class.java))
-                true
-            }
-            R.id.menu_income_types -> {
-                startActivity(Intent(this, IncomeTypesActivity::class.java))
-                true
-            }
-            R.id.menu_charts -> {
-                // Already on charts screen
+            R.id.menu_notifications -> {
+                // TODO: Implement notifications screen
+                android.widget.Toast.makeText(this, "Notifications coming soon", android.widget.Toast.LENGTH_SHORT).show()
                 true
             }
             R.id.menu_settings -> {

@@ -46,3 +46,14 @@ data class FirestoreTeam(
     @PropertyName("createdBy") val createdBy: String = "",
     @PropertyName("createdAt") val createdAt: Long = System.currentTimeMillis()
 )
+
+data class FirestoreUserProfile(
+    @PropertyName("email") val email: String = "",
+    @PropertyName("name") val name: String? = null,
+    @PropertyName("playerPreference") val playerPreference: String? = null,
+    @PropertyName("mobileNumber") val mobileNumber: String? = null,
+    @PropertyName("alternateMobileNumber") val alternateMobileNumber: String? = null,
+    @PropertyName("userId") val userId: String = "",
+    @PropertyName("teamId") val teamId: String = "",
+    @PropertyName("lastModified") val lastModified: Long = System.currentTimeMillis()
+)

@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import com.magnum.cricketclub.R
 import com.magnum.cricketclub.data.remote.FirestoreRepository
 import com.magnum.cricketclub.data.sync.SyncService
+import com.magnum.cricketclub.ui.BaseActivity
 import com.magnum.cricketclub.ui.MainActivity
 import com.magnum.cricketclub.ui.auth.AuthActivity
 import com.magnum.cricketclub.ui.config.ConfigActivity
@@ -25,14 +26,14 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-class HomeActivity : AppCompatActivity() {
+class HomeActivity : BaseActivity() {
     private lateinit var viewModel: ExpenseViewModel
     private lateinit var totalBalanceTextView: TextView
     private lateinit var totalExpensesTextView: TextView
     private lateinit var totalIncomesTextView: TextView
     private var auth: FirebaseAuth? = null
     private val firestoreRepo = FirestoreRepository()
-    private val syncService = SyncService(this)
+    private lateinit var syncService: SyncService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +66,9 @@ class HomeActivity : AppCompatActivity() {
         supportActionBar?.title = getString(R.string.home_screen)
 
         viewModel = ViewModelProvider(this)[ExpenseViewModel::class.java]
+        
+        // Initialize SyncService after context is available
+        syncService = SyncService(this)
         
         // Sync data on app start
         lifecycleScope.launch {
@@ -118,6 +122,9 @@ class HomeActivity : AppCompatActivity() {
                 totalIncomesTextView.text = "₹${String.format("%.2f", total)}"
             }
         }
+        
+        // Setup bottom navigation
+        setupBottomNavigation()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -127,28 +134,9 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.menu_home -> {
-                // Already on home screen
-                true
-            }
-            R.id.menu_expenses -> {
-                startActivity(Intent(this, MainActivity::class.java))
-                true
-            }
-            R.id.menu_incomes -> {
-                startActivity(Intent(this, IncomesActivity::class.java))
-                true
-            }
-            R.id.menu_expense_types -> {
-                startActivity(Intent(this, ExpenseTypesActivity::class.java))
-                true
-            }
-            R.id.menu_income_types -> {
-                startActivity(Intent(this, IncomeTypesActivity::class.java))
-                true
-            }
-            R.id.menu_charts -> {
-                startActivity(Intent(this, ChartsActivity::class.java))
+            R.id.menu_notifications -> {
+                // TODO: Implement notifications screen
+                android.widget.Toast.makeText(this, "Notifications coming soon", android.widget.Toast.LENGTH_SHORT).show()
                 true
             }
             R.id.menu_settings -> {

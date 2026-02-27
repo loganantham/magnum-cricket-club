@@ -107,28 +107,9 @@ class IncomesActivity : AppCompatActivity() {
                 finish()
                 true
             }
-            R.id.menu_home -> {
-                startActivity(Intent(this, com.magnum.cricketclub.ui.home.HomeActivity::class.java))
-                true
-            }
-            R.id.menu_expenses -> {
-                startActivity(Intent(this, com.magnum.cricketclub.ui.MainActivity::class.java))
-                true
-            }
-            R.id.menu_incomes -> {
-                // Already on incomes screen
-                true
-            }
-            R.id.menu_expense_types -> {
-                startActivity(Intent(this, ExpenseTypesActivity::class.java))
-                true
-            }
-            R.id.menu_income_types -> {
-                startActivity(Intent(this, com.magnum.cricketclub.ui.incometype.IncomeTypesActivity::class.java))
-                true
-            }
-            R.id.menu_charts -> {
-                startActivity(Intent(this, com.magnum.cricketclub.ui.charts.ChartsActivity::class.java))
+            R.id.menu_notifications -> {
+                // TODO: Implement notifications screen
+                android.widget.Toast.makeText(this, "Notifications coming soon", android.widget.Toast.LENGTH_SHORT).show()
                 true
             }
             R.id.menu_settings -> {
