@@ -23,10 +23,12 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : BaseActivity() {
     private lateinit var viewModel: ExpenseViewModel
     private lateinit var expensesRecyclerView: RecyclerView
     private lateinit var totalBalanceTextView: TextView
+    private lateinit var totalExpensesTextView: TextView
+    private lateinit var totalIncomesTextView: TextView
     private lateinit var emptyStateTextView: TextView
     private lateinit var fabAddExpense: FloatingActionButton
     private lateinit var expenseAdapter: ExpenseAdapter
@@ -43,8 +45,38 @@ class MainActivity : AppCompatActivity() {
 
         expensesRecyclerView = findViewById(R.id.expensesRecyclerView)
         totalBalanceTextView = findViewById(R.id.totalBalanceTextView)
+        totalExpensesTextView = findViewById(R.id.totalExpensesTextView)
+        totalIncomesTextView = findViewById(R.id.totalIncomesTextView)
         emptyStateTextView = findViewById(R.id.emptyStateTextView)
         fabAddExpense = findViewById(R.id.fabAddExpense)
+        
+        // Setup card click listeners
+        val expensesCard = findViewById<com.google.android.material.card.MaterialCardView>(R.id.expensesCard)
+        val incomesCard = findViewById<com.google.android.material.card.MaterialCardView>(R.id.incomesCard)
+        val expenseTypesCard = findViewById<com.google.android.material.card.MaterialCardView>(R.id.expenseTypesCard)
+        val incomeTypesCard = findViewById<com.google.android.material.card.MaterialCardView>(R.id.incomeTypesCard)
+        val chartsCard = findViewById<com.google.android.material.card.MaterialCardView>(R.id.chartsCard)
+        
+        expensesCard.setOnClickListener {
+            // Scroll to expenses list or highlight it
+            expensesRecyclerView.smoothScrollToPosition(0)
+        }
+        
+        incomesCard.setOnClickListener {
+            startActivity(Intent(this, com.magnum.cricketclub.ui.income.IncomesActivity::class.java))
+        }
+        
+        expenseTypesCard.setOnClickListener {
+            startActivity(Intent(this, ExpenseTypesActivity::class.java))
+        }
+        
+        incomeTypesCard.setOnClickListener {
+            startActivity(Intent(this, com.magnum.cricketclub.ui.incometype.IncomeTypesActivity::class.java))
+        }
+        
+        chartsCard.setOnClickListener {
+            startActivity(Intent(this, com.magnum.cricketclub.ui.charts.ChartsActivity::class.java))
+        }
 
         expenseAdapter = ExpenseAdapter(
             onEditClick = { expense ->
@@ -101,6 +133,25 @@ class MainActivity : AppCompatActivity() {
                 totalBalanceTextView.setTextColor(color)
             }
         }
+        
+        // Calculate total expenses
+        lifecycleScope.launch {
+            viewModel.allExpensesOnly.collectLatest { expenses ->
+                val total = expenses.sumOf { it.amount }
+                totalExpensesTextView.text = "₹${String.format("%.2f", total)}"
+            }
+        }
+        
+        // Calculate total incomes
+        lifecycleScope.launch {
+            viewModel.allIncomes.collectLatest { incomes ->
+                val total = incomes.sumOf { it.amount }
+                totalIncomesTextView.text = "₹${String.format("%.2f", total)}"
+            }
+        }
+        
+        // Setup bottom navigation
+        setupBottomNavigation()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -110,28 +161,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.menu_home -> {
-                startActivity(Intent(this, com.magnum.cricketclub.ui.home.HomeActivity::class.java))
-                true
-            }
-            R.id.menu_expenses -> {
-                // Already on expenses screen
-                true
-            }
-            R.id.menu_incomes -> {
-                startActivity(Intent(this, com.magnum.cricketclub.ui.income.IncomesActivity::class.java))
-                true
-            }
-            R.id.menu_expense_types -> {
-                startActivity(Intent(this, ExpenseTypesActivity::class.java))
-                true
-            }
-            R.id.menu_income_types -> {
-                startActivity(Intent(this, com.magnum.cricketclub.ui.incometype.IncomeTypesActivity::class.java))
-                true
-            }
-            R.id.menu_charts -> {
-                startActivity(Intent(this, com.magnum.cricketclub.ui.charts.ChartsActivity::class.java))
+            R.id.menu_notifications -> {
+                // TODO: Implement notifications screen
+                android.widget.Toast.makeText(this, "Notifications coming soon", android.widget.Toast.LENGTH_SHORT).show()
                 true
             }
             R.id.menu_settings -> {

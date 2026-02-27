@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_expenses"
+        android:icon="@drawable/ic_money"
+        android:title="Expenses" />
+    <item
+        android:id="@+id/nav_me"
+        android:icon="@drawable/ic_cricket_player"
+        android:title="Me" />
+    <item
+        android:id="@+id/nav_team_profile"
+        android:icon="@drawable/ic_group"
+        android:title="Team Profile" />
+</menu>

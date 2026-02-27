@@ -47,4 +47,17 @@
     <string name="whatsapp_group_id_hint">Enter WhatsApp group invite link or ID</string>
     <string name="team_name_hint">Enter your team name</string>
     <string name="balance">Balance</string>
+    <string name="me">Me</string>
+    <string name="login_email">Login Email</string>
+    <string name="change_password">Change Password</string>
+    <string name="new_password">New Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="cricketer_role">Cricketer Role</string>
+    <string name="player_preference">Player Preference</string>
+    <string name="mobile_number">Mobile Number</string>
+    <string name="alternate_mobile_number">Alternate Mobile Number</string>
+    <string name="team_profile">Team Profile</string>
+    <string name="notifications">Notifications</string>
+    <string name="name">Name</string>
+    <string name="team_profile_screen">Team Profile</string>
 </resources>

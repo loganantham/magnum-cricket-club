@@ -20,9 +20,9 @@ class FirestoreRepository {
     }
 
     private fun getCurrentUserId(): String? = auth?.currentUser?.uid
-    private fun getCurrentTeamId(): String? {
-        // For now, use userId as teamId. Can be enhanced with team management
-        return getCurrentUserId()
+    private fun getCurrentTeamId(): String {
+        // Use "magnum" as the team ID for all users
+        return "magnum"
     }
     
     private fun isFirebaseAvailable(): Boolean {
@@ -180,6 +180,72 @@ class FirestoreRepository {
             .document(typeId.toString())
             .update("isDeleted", true, "lastModified", System.currentTimeMillis())
             .await()
+    }
+
+    // User Profiles
+    suspend fun uploadUserProfile(userProfile: com.magnum.cricketclub.data.UserProfile) {
+        if (!isFirebaseAvailable()) return
+        val userId = getCurrentUserId() ?: return
+        val teamId = getCurrentTeamId()
+
+        val firestoreProfile = FirestoreUserProfile(
+            email = userProfile.email,
+            name = userProfile.name,
+            playerPreference = userProfile.playerPreference,
+            mobileNumber = userProfile.mobileNumber,
+            alternateMobileNumber = userProfile.alternateMobileNumber,
+            userId = userId,
+            teamId = teamId,
+            lastModified = System.currentTimeMillis()
+        )
+
+        firestore!!.collection("userProfiles")
+            .document(userProfile.email)
+            .set(firestoreProfile)
+            .await()
+    }
+
+    suspend fun downloadAllUserProfiles(): List<com.magnum.cricketclub.data.UserProfile> {
+        if (!isFirebaseAvailable()) return emptyList()
+        val teamId = getCurrentTeamId()
+
+        // Get all profiles (we'll filter and update teamId if needed)
+        val allProfilesSnapshot = firestore!!.collection("userProfiles")
+            .get()
+            .await()
+
+        // Update profiles with blank/null/missing teamId to "magnum"
+        allProfilesSnapshot.documents.forEach { doc ->
+            val data = doc.toObject(FirestoreUserProfile::class.java)
+            val currentTeamId = data?.teamId ?: ""
+            
+            // Update if teamId is blank, null, or missing
+            if (currentTeamId.isEmpty() || currentTeamId.isBlank()) {
+                try {
+                    doc.reference.update("teamId", teamId, "lastModified", System.currentTimeMillis()).await()
+                    android.util.Log.d("FirestoreRepository", "Updated teamId to 'magnum' for user: ${doc.id}")
+                } catch (e: Exception) {
+                    android.util.Log.e("FirestoreRepository", "Error updating teamId for user: ${doc.id}", e)
+                }
+            }
+        }
+
+        // Now get all profiles with the teamId (including newly updated ones)
+        val snapshot = firestore!!.collection("userProfiles")
+            .whereEqualTo("teamId", teamId)
+            .get()
+            .await()
+
+        return snapshot.documents.mapNotNull { doc ->
+            val data = doc.toObject(FirestoreUserProfile::class.java) ?: return@mapNotNull null
+            com.magnum.cricketclub.data.UserProfile(
+                email = data.email,
+                name = data.name,
+                playerPreference = data.playerPreference,
+                mobileNumber = data.mobileNumber,
+                alternateMobileNumber = data.alternateMobileNumber
+            )
+        }
     }
 
     // Authentication

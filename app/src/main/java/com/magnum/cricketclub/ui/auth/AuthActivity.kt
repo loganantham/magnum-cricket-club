@@ -52,9 +52,27 @@ class AuthActivity : AppCompatActivity() {
             val errorCode = e.statusCode
             val errorMessage = when (errorCode) {
                 12501 -> {
-                    // DEVELOPER_ERROR - Most commonly caused by missing SHA-1 fingerprint
-                    "Configuration error: Please add your app's SHA-1 fingerprint to Firebase Console. " +
-                    "See GOOGLE_SIGNIN_TROUBLESHOOTING.md for instructions."
+                    // DEVELOPER_ERROR - Most commonly caused by:
+                    // 1. OAuth consent screen not configured
+                    // 2. SHA-1 fingerprint mismatch
+                    // 3. Web Client ID not properly linked
+                    val detailedError = """
+                        Configuration Error (12501):
+                        
+                        Most likely causes:
+                        1. OAuth consent screen not configured in Google Cloud Console
+                        2. App needs to be uninstalled and rebuilt
+                        3. SHA-1 fingerprint mismatch
+                        
+                        See ERROR_12501_FIX.md for detailed fix instructions.
+                        
+                        Quick fixes:
+                        - Configure OAuth consent screen in Google Cloud Console
+                        - Uninstall app completely and rebuild
+                        - Verify SHA-1 in Firebase Console
+                    """.trimIndent()
+                    android.util.Log.e("AuthActivity", detailedError)
+                    "Configuration error. See ERROR_12501_FIX.md for fix instructions."
                 }
                 com.google.android.gms.common.api.CommonStatusCodes.NETWORK_ERROR -> {
                     "Network error. Please check your internet connection and try again."
@@ -121,12 +139,15 @@ class AuthActivity : AppCompatActivity() {
                     .requestEmail()
                     .build()
                 googleSignInClient = GoogleSignIn.getClient(this, gso)
-                android.util.Log.d("AuthActivity", "Google Sign-In configured successfully")
+                android.util.Log.d("AuthActivity", "Google Sign-In configured successfully with Web Client ID: $webClientId")
+                
+                // Log configuration details for debugging
+                logGoogleSignInConfiguration(webClientId)
             } else {
                 // Hide Google Sign-In button if not configured
                 googleSignInButton.visibility = android.view.View.GONE
                 findViewById<android.widget.TextView>(R.id.dividerTextView)?.visibility = android.view.View.GONE
-                android.util.Log.d("AuthActivity", "Google Sign-In not configured - Web Client ID not found in google-services.json")
+                android.util.Log.w("AuthActivity", "Google Sign-In not configured - Web Client ID not found in google-services.json")
             }
         } catch (e: Exception) {
             android.util.Log.e("AuthActivity", "Google Sign-In configuration error: ${e.message}", e)
@@ -190,12 +211,25 @@ class AuthActivity : AppCompatActivity() {
                     }
                     navigateToHome()
                 } else {
+                    val error = task.exception
                     val errorMessage = when {
-                        task.exception?.message?.contains("password") == true -> "Incorrect password"
-                        task.exception?.message?.contains("user") == true -> "No account found with this email"
-                        else -> "Sign in failed: ${task.exception?.message}"
+                        error?.message?.contains("password") == true -> 
+                            "Incorrect password"
+                        error?.message?.contains("user") == true || 
+                        error?.message?.contains("no user record") == true -> 
+                            "No account found with this email. Please sign up first."
+                        error?.message?.contains("not allowed") == true || 
+                        error?.message?.contains("disabled") == true || 
+                        error?.message?.contains("sign-in provider") == true -> {
+                            android.util.Log.e("AuthActivity", "Email/Password auth is disabled in Firebase Console", error)
+                            "Email/Password authentication is disabled. " +
+                            "Please enable it in Firebase Console → Authentication → Sign-in method. " +
+                            "See ENABLE_EMAIL_PASSWORD_AUTH.md for instructions."
+                        }
+                        else -> "Sign in failed: ${error?.message}"
                     }
-                    Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
+                    android.util.Log.e("AuthActivity", "Sign in failed", error)
+                    Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
                 }
             }
     }
@@ -249,11 +283,23 @@ class AuthActivity : AppCompatActivity() {
                     }
                     navigateToHome()
                 } else {
+                    val error = task.exception
                     val errorMessage = when {
-                        task.exception?.message?.contains("already") == true -> "An account with this email already exists. Please sign in instead."
-                        task.exception?.message?.contains("weak") == true -> "Password is too weak. Please use a stronger password."
-                        else -> "Sign up failed: ${task.exception?.message}"
+                        error?.message?.contains("already") == true -> 
+                            "An account with this email already exists. Please sign in instead."
+                        error?.message?.contains("weak") == true -> 
+                            "Password is too weak. Please use a stronger password."
+                        error?.message?.contains("not allowed") == true || 
+                        error?.message?.contains("disabled") == true || 
+                        error?.message?.contains("sign-in provider") == true -> {
+                            android.util.Log.e("AuthActivity", "Email/Password auth is disabled in Firebase Console", error)
+                            "Email/Password authentication is disabled. " +
+                            "Please enable it in Firebase Console → Authentication → Sign-in method. " +
+                            "See ENABLE_EMAIL_PASSWORD_AUTH.md for instructions."
+                        }
+                        else -> "Sign up failed: ${error?.message}"
                     }
+                    android.util.Log.e("AuthActivity", "Sign up failed", error)
                     Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show()
                 }
             }
@@ -319,6 +365,18 @@ class AuthActivity : AppCompatActivity() {
         // Current Web Client ID from google-services.json: "1076211377209-ride5umkasmacjqfjgh9836f1ttb9uls.apps.googleusercontent.com"
         // Note: After adding SHA-1, make sure to rebuild the app completely
         return "1076211377209-ride5umkasmacjqfjgh9836f1ttb9uls.apps.googleusercontent.com"
+    }
+    
+    private fun logGoogleSignInConfiguration(webClientId: String) {
+        android.util.Log.d("AuthActivity", "=== Google Sign-In Configuration ===")
+        android.util.Log.d("AuthActivity", "Package Name: com.magnum.cricketclub")
+        android.util.Log.d("AuthActivity", "Web Client ID: $webClientId")
+        android.util.Log.d("AuthActivity", "Expected SHA-1: BB:F1:E2:2D:4C:EF:31:B4:CC:41:3F:FD:E5:B9:CC:E5:D1:18:3B:6D")
+        android.util.Log.d("AuthActivity", "If error 12501 occurs, check:")
+        android.util.Log.d("AuthActivity", "1. OAuth consent screen in Google Cloud Console")
+        android.util.Log.d("AuthActivity", "2. SHA-1 fingerprint in Firebase Console")
+        android.util.Log.d("AuthActivity", "3. App uninstalled and rebuilt")
+        android.util.Log.d("AuthActivity", "See ERROR_12501_FIX.md for details")
     }
 
     private fun navigateToHome() {
