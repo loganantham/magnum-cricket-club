@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/menu_home"
+        android:title="@string/home_screen"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_expenses"
+        android:title="@string/expenses"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_incomes"
+        android:title="@string/incomes"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_expense_types"
+        android:title="@string/expense_types"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_income_types"
+        android:title="@string/income_types"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_charts"
+        android:title="@string/charts"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_settings"
+        android:title="@string/settings"
+        app:showAsAction="never" />
+</menu>
