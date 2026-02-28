@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/successOverlayContainer"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#80000000"
+    android:visibility="gone"
+    android:clickable="true"
+    android:focusable="true">
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/successCardView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="8dp"
+        app:cardBackgroundColor="@android:color/white">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="32dp"
+            android:minWidth="200dp">
+
+            <!-- Success Icon Container -->
+            <FrameLayout
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_marginBottom="16dp">
+
+                <!-- Background Circle -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/successIconBackground"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:layout_gravity="center"
+                    app:cardCornerRadius="40dp"
+                    app:cardBackgroundColor="#4CAF50"
+                    app:elevation="0dp"
+                    app:strokeWidth="0dp" />
+
+                <!-- Checkmark Icon -->
+                <ImageView
+                    android:id="@+id/successCheckmark"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_check_circle"
+                    android:scaleType="fitCenter"
+                    android:alpha="0.0" />
+
+            </FrameLayout>
+
+            <!-- Success Message -->
+            <TextView
+                android:id="@+id/successMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Saved Successfully!"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:gravity="center"
+                android:alpha="0.0" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+</FrameLayout>

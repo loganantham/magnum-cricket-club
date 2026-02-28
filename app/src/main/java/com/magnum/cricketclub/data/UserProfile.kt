@@ -10,5 +10,6 @@ data class UserProfile(
     val name: String? = null,
     val playerPreference: String? = null, // Batsman, Bowler, All Rounder, Wicket Keeper
     val mobileNumber: String? = null,
-    val alternateMobileNumber: String? = null
+    val alternateMobileNumber: String? = null,
+    val additionalResponsibility: String? = null // Finance Maintenance, Finance Contributor, Manager, Secretary, Captain, Vice Captain, Player
 )

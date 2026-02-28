@@ -6,9 +6,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.magnum.cricketclub.R
+import com.magnum.cricketclub.utils.SuccessOverlay
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.textfield.TextInputEditText
+import android.view.ViewGroup
 import kotlinx.coroutines.launch
 
 class ConfigActivity : AppCompatActivity() {
@@ -22,6 +24,8 @@ class ConfigActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_config)
         
+        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = getString(R.string.configuration)
 
@@ -58,13 +62,31 @@ class ConfigActivity : AppCompatActivity() {
         val enabled = whatsappEnabledSwitch.isChecked
         val teamName = teamNameEditText.text.toString().trim()
 
+        // Validate team name if provided
+        if (teamName.isNotEmpty() && teamName.length < 2) {
+            teamNameEditText.error = "Team name must be at least 2 characters"
+            teamNameEditText.requestFocus()
+            return
+        }
+
+        // Clear any previous errors
+        teamNameEditText.error = null
+
         lifecycleScope.launch {
             viewModel.setWhatsAppGroupId(groupId)
             viewModel.setWhatsAppEnabled(enabled)
             viewModel.setTeamName(teamName)
             
-            Toast.makeText(this@ConfigActivity, "Settings saved", Toast.LENGTH_SHORT).show()
-            finish()
+            // Show success overlay
+            val rootView = window.decorView.findViewById<ViewGroup>(android.R.id.content)
+            SuccessOverlay.show(
+                parentView = rootView,
+                message = "Settings saved successfully!",
+                duration = 2000,
+                onDismiss = {
+                    finish()
+                }
+            )
         }
     }
 }

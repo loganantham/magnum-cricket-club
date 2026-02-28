@@ -53,6 +53,7 @@ data class FirestoreUserProfile(
     @PropertyName("playerPreference") val playerPreference: String? = null,
     @PropertyName("mobileNumber") val mobileNumber: String? = null,
     @PropertyName("alternateMobileNumber") val alternateMobileNumber: String? = null,
+    @PropertyName("additionalResponsibility") val additionalResponsibility: String? = null,
     @PropertyName("userId") val userId: String = "",
     @PropertyName("teamId") val teamId: String = "",
     @PropertyName("lastModified") val lastModified: Long = System.currentTimeMillis()

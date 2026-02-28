@@ -194,6 +194,7 @@ class FirestoreRepository {
             playerPreference = userProfile.playerPreference,
             mobileNumber = userProfile.mobileNumber,
             alternateMobileNumber = userProfile.alternateMobileNumber,
+            additionalResponsibility = userProfile.additionalResponsibility,
             userId = userId,
             teamId = teamId,
             lastModified = System.currentTimeMillis()
@@ -243,7 +244,8 @@ class FirestoreRepository {
                 name = data.name,
                 playerPreference = data.playerPreference,
                 mobileNumber = data.mobileNumber,
-                alternateMobileNumber = data.alternateMobileNumber
+                alternateMobileNumber = data.alternateMobileNumber,
+                additionalResponsibility = data.additionalResponsibility
             )
         }
     }
