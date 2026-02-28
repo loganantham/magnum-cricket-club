@@ -53,6 +53,7 @@
     <string name="new_password">New Password</string>
     <string name="confirm_password">Confirm Password</string>
     <string name="cricketer_role">Cricketer Role</string>
+    <string name="additional_responsibility">Additional Responsibility</string>
     <string name="player_preference">Player Preference</string>
     <string name="mobile_number">Mobile Number</string>
     <string name="alternate_mobile_number">Alternate Mobile Number</string>
@@ -60,4 +61,10 @@
     <string name="notifications">Notifications</string>
     <string name="name">Name</string>
     <string name="team_profile_screen">Team Profile</string>
+    <string name="user_management">User Management</string>
+    <string name="loading_users">Loading users...</string>
+    <string name="no_users_found">No users found</string>
+    <string name="select_responsibility">Select Responsibility</string>
+    <string name="whatsapp_settings">WhatsApp Settings</string>
+    <string name="team_settings">Team Settings</string>
 </resources>
