@@ -14,4 +14,6 @@
     <color name="card_background">#F5F5F5</color>
     <color name="text_primary">#424242</color>
     <color name="text_hint">#9E9E9E</color>
+    <color name="status_pending_color">#FFC107</color>
+    <color name="status_partial_color">#FF9800</color>
 </resources>

@@ -14,7 +14,7 @@ import com.magnum.cricketclub.data.ExpenseType
 import com.magnum.cricketclub.ui.expensetype.ExpenseTypeAdapter
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.textfield.TextInputEditText
+import android.widget.EditText
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -69,10 +69,15 @@ class ExpenseTypesActivity : AppCompatActivity() {
 
     private fun showAddEditDialog(expenseType: ExpenseType?) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_edit_expense_type, null)
-        val nameEditText = dialogView.findViewById<TextInputEditText>(R.id.expenseTypeNameEditText)
-        val descriptionEditText = dialogView.findViewById<TextInputEditText>(R.id.expenseTypeDescriptionEditText)
+        val typeNameLabel = dialogView.findViewById<TextView>(R.id.typeNameLabelTextView)
+        val typeNameHint = dialogView.findViewById<TextView>(R.id.typeNameHintTextView)
+        val nameEditText = dialogView.findViewById<EditText>(R.id.expenseTypeNameEditText)
+        val descriptionEditText = dialogView.findViewById<EditText>(R.id.expenseTypeDescriptionEditText)
         val saveButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.saveButton)
         val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancelButton)
+
+        typeNameLabel.text = getString(R.string.expense_type)
+        typeNameHint.text = getString(R.string.enter_expense_type_name)
 
         if (expenseType != null) {
             nameEditText.setText(expenseType.name)
@@ -92,6 +97,7 @@ class ExpenseTypesActivity : AppCompatActivity() {
                 nameEditText.error = getString(R.string.enter_expense_type_name)
                 return@setOnClickListener
             }
+            nameEditText.error = null
 
             val updatedExpenseType = if (expenseType != null) {
                 expenseType.copy(name = name, description = description)

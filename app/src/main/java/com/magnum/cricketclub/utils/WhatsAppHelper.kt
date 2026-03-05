@@ -83,4 +83,79 @@ object WhatsAppHelper {
             Toast.makeText(context, "Failed to open WhatsApp: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
+
+    fun sendContributionReminder(
+        context: Context,
+        phoneNumber: String,
+        contributorName: String?,
+        year: Int,
+        monthName: String,
+        amount: Double,
+        status: String
+    ) {
+        try {
+            val greetingName = contributorName?.takeIf { it.isNotBlank() } ?: "there"
+            val messageTitle = context.getString(com.magnum.cricketclub.R.string.contribution_reminder_title)
+            val messageStatus = status.ifBlank { context.getString(com.magnum.cricketclub.R.string.status_pending) }
+
+            val message = """
+                $messageTitle
+
+                Hi $greetingName,
+
+                This is a gentle reminder for your team contribution for $monthName $year.
+
+                Amount: ₹${String.format("%.2f", amount)}
+                Status: $messageStatus
+
+                Please complete the payment and update the status once done.
+
+                Thank you for supporting Magnum Cricket Club! 🏏
+            """.trimIndent()
+
+            val cleanNumber = phoneNumber.trim()
+            if (cleanNumber.isEmpty()) {
+                Toast.makeText(
+                    context,
+                    context.getString(com.magnum.cricketclub.R.string.no_mobile_for_contributor),
+                    Toast.LENGTH_SHORT
+                ).show()
+                return
+            }
+
+            val uri = Uri.parse("https://wa.me/$cleanNumber?text=${Uri.encode(message)}")
+            val intent = Intent(Intent.ACTION_VIEW, uri)
+
+            if (intent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(intent)
+            } else {
+                Toast.makeText(
+                    context,
+                    context.getString(com.magnum.cricketclub.R.string.whatsapp_not_installed),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(
+                context,
+                context.getString(com.magnum.cricketclub.R.string.failed_to_open_whatsapp, e.message ?: ""),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    fun sendCustomMessage(context: Context, phoneNumber: String, message: String) {
+        try {
+            val cleanNumber = phoneNumber.trim()
+            if (cleanNumber.isEmpty()) {
+                Toast.makeText(context, "No phone number available", Toast.LENGTH_SHORT).show()
+                return
+            }
+            val uri = Uri.parse("https://wa.me/$cleanNumber?text=${Uri.encode(message)}")
+            val intent = Intent(Intent.ACTION_VIEW, uri)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(context, "Failed to open WhatsApp: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
 }

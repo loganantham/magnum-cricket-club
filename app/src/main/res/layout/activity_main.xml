@@ -278,6 +278,108 @@
                 android:layout_gravity="center"
                 android:layout_marginTop="16dp" />
 
+            <!-- Team Contribution Ledger Section -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/teamContributionCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@android:color/white"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:id="@+id/teamContributionHeader"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/team_contribution_ledger"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold"
+                            android:textSize="18sp" />
+
+                        <ImageView
+                            android:id="@+id/teamContributionChevron"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@android:drawable/arrow_down_float"
+                            android:tint="@color/text_hint"
+                            android:rotation="0" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/teamContributionContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <!-- Year Filter -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="12dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/filter_year"
+                                android:textSize="14sp"
+                                android:textColor="@color/text_primary" />
+
+                            <Spinner
+                                android:id="@+id/yearFilterSpinner"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:spinnerMode="dropdown" />
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/teamContributionEmptyStateTextView"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/no_finance_contributors"
+                            android:textSize="16sp"
+                            android:textColor="@android:color/darker_gray"
+                            android:visibility="gone"
+                            android:layout_gravity="center_horizontal"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="8dp" />
+
+                        <LinearLayout
+                            android:id="@+id/contributionTablesContainer"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>

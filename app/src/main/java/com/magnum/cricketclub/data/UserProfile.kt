@@ -12,4 +12,23 @@ data class UserProfile(
     val mobileNumber: String? = null,
     val alternateMobileNumber: String? = null,
     val additionalResponsibility: String? = null // Finance Maintenance, Finance Contributor, Manager, Secretary, Captain, Vice Captain, Player
-)
+) {
+    fun isAdmin(): Boolean {
+        val responsibilities = additionalResponsibility?.split(",")?.map { it.trim() } ?: emptyList()
+        return responsibilities.contains("App Owner") || responsibilities.contains("App Developer")
+    }
+
+    fun isManager(): Boolean {
+        val responsibilities = additionalResponsibility?.split(",")?.map { it.trim() } ?: emptyList()
+        return responsibilities.contains("Manager")
+    }
+
+    fun canManageMatches(): Boolean {
+        return isManager() || isAdmin()
+    }
+
+    fun canManageFinance(): Boolean {
+        val responsibilities = additionalResponsibility?.split(",")?.map { it.trim() } ?: emptyList()
+        return responsibilities.contains("Finance Maintenance") || isAdmin()
+    }
+}

@@ -2,154 +2,101 @@ package com.magnum.cricketclub.ui.home
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import com.magnum.cricketclub.R
-import com.magnum.cricketclub.data.remote.FirestoreRepository
-import com.magnum.cricketclub.data.sync.SyncService
-import com.magnum.cricketclub.ui.BaseActivity
-import com.magnum.cricketclub.ui.MainActivity
-import com.magnum.cricketclub.ui.auth.AuthActivity
-import com.magnum.cricketclub.ui.config.ConfigActivity
-import com.magnum.cricketclub.ui.expense.ExpenseViewModel
-import com.magnum.cricketclub.ui.expensetype.ExpenseTypesActivity
-import com.magnum.cricketclub.ui.income.IncomesActivity
-import com.magnum.cricketclub.ui.incometype.IncomeTypesActivity
-import com.magnum.cricketclub.ui.charts.ChartsActivity
-import com.google.android.material.card.MaterialCardView
+import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.flow.collectLatest
+import com.magnum.cricketclub.R
+import com.magnum.cricketclub.data.UserProfileRepository
+import com.magnum.cricketclub.ui.BaseActivity
+import com.magnum.cricketclub.utils.UpcomingMatchStore
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 class HomeActivity : BaseActivity() {
-    private lateinit var viewModel: ExpenseViewModel
-    private lateinit var totalBalanceTextView: TextView
-    private lateinit var totalExpensesTextView: TextView
-    private lateinit var totalIncomesTextView: TextView
-    private var auth: FirebaseAuth? = null
-    private val firestoreRepo = FirestoreRepository()
-    private lateinit var syncService: SyncService
+
+    private lateinit var upcomingMatchCard: View
+    private lateinit var noUpcomingMatchTextView: TextView
+    private lateinit var matchTeamsTextView: TextView
+    private lateinit var matchDateTextView: TextView
+    private lateinit var matchGroundTextView: TextView
+    private lateinit var matchLocationTextView: TextView
+    private lateinit var addMatchButton: MaterialButton
+    private lateinit var userProfileRepository: UserProfileRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Initialize Firebase Auth only if available
-        auth = try {
-            FirebaseAuth.getInstance()
-        } catch (e: Exception) {
-            // Firebase not configured - continue in offline mode
-            android.util.Log.d("HomeActivity", "Firebase not configured, working offline")
-            null
-        }
-        
-        // Check authentication only if Firebase is configured
-        // If Firebase is not configured, skip auth and work in offline mode
-        try {
-            if (!firestoreRepo.isUserSignedIn()) {
-                startActivity(Intent(this, AuthActivity::class.java))
-                finish()
-                return
-            }
-        } catch (e: Exception) {
-            // Firebase not configured - continue in offline mode
-            android.util.Log.d("HomeActivity", "Firebase not configured, working offline")
-        }
-        
         setContentView(R.layout.activity_home)
-        
+
         setSupportActionBar(findViewById(R.id.toolbar))
-        supportActionBar?.title = getString(R.string.home_screen)
+        supportActionBar?.title = getString(R.string.home)
 
-        viewModel = ViewModelProvider(this)[ExpenseViewModel::class.java]
-        
-        // Initialize SyncService after context is available
-        syncService = SyncService(this)
-        
-        // Sync data on app start
-        lifecycleScope.launch {
-            syncService.fullSync()
-        }
+        userProfileRepository = UserProfileRepository(application)
 
-        totalBalanceTextView = findViewById(R.id.totalBalanceTextView)
-        totalExpensesTextView = findViewById(R.id.totalExpensesTextView)
-        totalIncomesTextView = findViewById(R.id.totalIncomesTextView)
+        upcomingMatchCard = findViewById(R.id.upcomingMatchCard)
+        noUpcomingMatchTextView = findViewById(R.id.noUpcomingMatchTextView)
+        matchTeamsTextView = findViewById(R.id.matchTeamsTextView)
+        matchDateTextView = findViewById(R.id.matchDateTextView)
+        matchGroundTextView = findViewById(R.id.matchGroundTextView)
+        matchLocationTextView = findViewById(R.id.matchLocationTextView)
+        addMatchButton = findViewById(R.id.addMatchButton)
 
-        val expensesCard: MaterialCardView = findViewById(R.id.expensesCard)
-        val incomesCard: MaterialCardView = findViewById(R.id.incomesCard)
-        val chartsCard: MaterialCardView = findViewById(R.id.chartsCard)
-
-        expensesCard.setOnClickListener {
-            startActivity(Intent(this, MainActivity::class.java))
-        }
-
-        incomesCard.setOnClickListener {
-            startActivity(Intent(this, IncomesActivity::class.java))
-        }
-
-        chartsCard.setOnClickListener {
-            startActivity(Intent(this, ChartsActivity::class.java))
-        }
-
-        // Observe total balance
-        lifecycleScope.launch {
-            viewModel.totalBalance.collectLatest { balance ->
-                val balanceText = "₹${String.format("%.2f", balance ?: 0.0)}"
-                totalBalanceTextView.text = balanceText
-                val color = if ((balance ?: 0.0) >= 0) 
-                    getColor(R.color.green) 
-                else 
-                    getColor(R.color.red)
-                totalBalanceTextView.setTextColor(color)
-            }
-        }
-
-        // Calculate total expenses and incomes
-        lifecycleScope.launch {
-            viewModel.allExpensesOnly.collectLatest { expenses ->
-                val total = expenses.sumOf { it.amount }
-                totalExpensesTextView.text = "₹${String.format("%.2f", total)}"
-            }
-        }
-
-        lifecycleScope.launch {
-            viewModel.allIncomes.collectLatest { incomes ->
-                val total = incomes.sumOf { it.amount }
-                totalIncomesTextView.text = "₹${String.format("%.2f", total)}"
-            }
+        addMatchButton.setOnClickListener {
+            startActivity(Intent(this, com.magnum.cricketclub.ui.teamprofile.TeamProfileActivity::class.java))
         }
         
-        // Setup bottom navigation
         setupBottomNavigation()
+
+        loadUpcomingMatch()
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.main_menu, menu)
-        return true
+    override fun onResume() {
+        super.onResume()
+        loadUpcomingMatch()
+        updateBottomNavigationSelection()
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.menu_notifications -> {
-                // TODO: Implement notifications screen
-                android.widget.Toast.makeText(this, "Notifications coming soon", android.widget.Toast.LENGTH_SHORT).show()
-                true
+    private fun loadUpcomingMatch() {
+        lifecycleScope.launch {
+            val email = FirebaseAuth.getInstance().currentUser?.email ?: ""
+            val profile = userProfileRepository.getUserProfileSync(email)
+            val canManageMatches = profile?.canManageMatches() == true
+
+            val match = UpcomingMatchStore.load(this@HomeActivity)
+            if (match != null) {
+                noUpcomingMatchTextView.visibility = View.GONE
+                matchTeamsTextView.visibility = View.VISIBLE
+                matchDateTextView.visibility = View.VISIBLE
+                matchGroundTextView.visibility = View.VISIBLE
+                matchLocationTextView.visibility = View.VISIBLE
+                
+                val formatter = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
+                matchTeamsTextView.text = "${match.team1} vs ${match.team2}"
+                matchDateTextView.text = formatter.format(Date(match.dateUtcMillis))
+                matchGroundTextView.text = match.groundName
+                matchLocationTextView.text = match.groundLocation
+
+                upcomingMatchCard.setOnClickListener {
+                    startActivity(Intent(this@HomeActivity, com.magnum.cricketclub.ui.teamprofile.TeamProfileActivity::class.java))
+                }
+                
+                addMatchButton.text = if (canManageMatches) "Manage Match" else "View Details"
+            } else {
+                noUpcomingMatchTextView.visibility = View.VISIBLE
+                matchTeamsTextView.visibility = View.GONE
+                matchDateTextView.visibility = View.GONE
+                matchGroundTextView.visibility = View.GONE
+                matchLocationTextView.visibility = View.GONE
+                
+                addMatchButton.visibility = if (canManageMatches) View.VISIBLE else View.GONE
+                addMatchButton.text = "Schedule a Match"
             }
-            R.id.menu_settings -> {
-                startActivity(Intent(this, ConfigActivity::class.java))
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
         }
-    }
-    
-    fun signOut() {
-        auth?.signOut()
-        startActivity(Intent(this, AuthActivity::class.java))
-        finish()
     }
 }
