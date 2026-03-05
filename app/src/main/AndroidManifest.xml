@@ -39,8 +39,9 @@
             android:parentActivityName=".ui.MainActivity" />
         
         <activity
-            android:name=".ui.home.HomeActivity"
-            android:exported="false" />
+            android:name=".ui.expense.TransactionsActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.MainActivity" />
         
         <activity
             android:name=".ui.income.IncomesActivity"

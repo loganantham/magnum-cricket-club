@@ -42,9 +42,9 @@
     <string name="enter_income_type_name">Enter income type name</string>
     <string name="no_income_types">No income types. Add one to get started.</string>
     <string name="home_screen">Home Screen</string>
-    <string name="charts">Charts</string>
-    <string name="monthly_chart">Monthly Chart</string>
-    <string name="yearly_chart">Yearly Chart</string>
+    <string name="charts">Reports</string>
+    <string name="monthly_chart">Monthly Report</string>
+    <string name="yearly_chart">Yearly Report</string>
     <string name="whatsapp_group_id_hint">Enter WhatsApp group invite link or ID</string>
     <string name="team_name_hint">Enter your team name</string>
     <string name="balance">Balance</string>
@@ -96,4 +96,11 @@
     <string name="failed_to_open_whatsapp">Failed to open WhatsApp: %1$s</string>
     <string name="contribution_reminder_title">Magnum Cricket Club Team Contribution Reminder</string>
     <string name="home">Home</string>
+    <string name="expense_management">Expense Management</string>
+    <string name="not_authorized">Not authorized</string>
+    <string name="contact_secretary_for_access">Please contact secretary for access</string>
+    <string name="overview">Overview</string>
+    <string name="filter_month">Month</string>
+    <string name="export_pdf">Export PDF</string>
+    <string name="reports">Reports</string>
 </resources>

@@ -3,6 +3,12 @@ package com.magnum.cricketclub.ui.expense
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
+import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -13,15 +19,15 @@ import com.magnum.cricketclub.data.Expense
 import com.magnum.cricketclub.data.ExpenseType
 import com.magnum.cricketclub.data.IncomeType
 import com.magnum.cricketclub.utils.WhatsAppHelper
-import android.widget.EditText
-import android.widget.TextView
 import com.google.android.material.button.MaterialButton
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class AddEditExpenseActivity : AppCompatActivity() {
     private lateinit var viewModel: ExpenseViewModel
-    private lateinit var typeAutoComplete: android.widget.AutoCompleteTextView
+    private lateinit var entryTypeAutoComplete: AutoCompleteTextView
+    private lateinit var typeAutoComplete: AutoCompleteTextView
     private lateinit var typeLabelTextView: TextView
     private lateinit var typeHintTextView: TextView
     private lateinit var amountEditText: EditText
@@ -35,6 +41,7 @@ class AddEditExpenseActivity : AppCompatActivity() {
     private var incomeTypes: List<IncomeType> = emptyList()
     private var selectedExpenseType: ExpenseType? = null
     private var selectedIncomeType: IncomeType? = null
+    private var createdByEmail: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +54,7 @@ class AddEditExpenseActivity : AppCompatActivity() {
 
         viewModel = ViewModelProvider(this)[ExpenseViewModel::class.java]
 
+        entryTypeAutoComplete = findViewById(R.id.entryTypeAutoComplete)
         typeAutoComplete = findViewById(R.id.expenseTypeAutoComplete)
         typeLabelTextView = findViewById(R.id.typeLabelTextView)
         typeHintTextView = findViewById(R.id.typeHintTextView)
@@ -55,74 +63,85 @@ class AddEditExpenseActivity : AppCompatActivity() {
         saveButton = findViewById(R.id.saveButton)
         deleteButton = findViewById(R.id.deleteButton)
 
-        typeLabelTextView.text = if (isIncomeFromIntent) getString(R.string.income_type) else getString(R.string.expense_type)
-        typeHintTextView.text = if (isIncomeFromIntent) getString(R.string.select_income_type) else getString(R.string.select_expense_type)
+        setupEntryTypeDropdown()
 
-        // Autocomplete UX: allow typing, show dropdown on tap/focus.
+        // Entry Type UX
+        entryTypeAutoComplete.setOnClickListener { entryTypeAutoComplete.showDropDown() }
+        entryTypeAutoComplete.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) entryTypeAutoComplete.showDropDown()
+        }
+        findViewById<View>(R.id.entryTypeLayout)?.setOnClickListener {
+            if (entryTypeAutoComplete.isEnabled) entryTypeAutoComplete.showDropDown()
+        }
+
+        // Autocomplete UX for category type
         typeAutoComplete.threshold = 0
         typeAutoComplete.setOnClickListener { typeAutoComplete.showDropDown() }
         typeAutoComplete.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) typeAutoComplete.showDropDown()
         }
+        findViewById<View>(R.id.typeInputLayout)?.setOnClickListener {
+            typeAutoComplete.showDropDown()
+        }
+        
         typeAutoComplete.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                // If user types/edits manually, force re-selection from dropdown.
-                selectedIncomeType = null
-                selectedExpenseType = null
+                // If the text doesn't match any known type, reset selection
+                val text = s.toString()
+                if (isIncome) {
+                    if (selectedIncomeType?.name != text) selectedIncomeType = null
+                } else {
+                    if (selectedExpenseType?.name != text) selectedExpenseType = null
+                }
             }
         })
 
         if (expenseId != null) {
-            // Will be updated after loading the expense
             supportActionBar?.title = getString(R.string.edit_expense)
-            deleteButton.visibility = android.view.View.VISIBLE
+            deleteButton.visibility = View.VISIBLE
+            // Hide entry type selection when editing existing entry to prevent confusion
+            entryTypeAutoComplete.isEnabled = false
+            findViewById<View>(R.id.entryTypeLayout)?.alpha = 0.6f
         } else {
-            if (isIncomeFromIntent) {
-                supportActionBar?.title = getString(R.string.add_income)
-                isIncome = true
-            } else {
-                supportActionBar?.title = getString(R.string.add_expense)
-                isIncome = false
-            }
-            deleteButton.visibility = android.view.View.GONE
+            isIncome = isIncomeFromIntent
+            val initialEntryType = if (isIncome) "Income" else "Expense"
+            entryTypeAutoComplete.setText(initialEntryType, false)
+            updateCategoryUiLabels()
+            deleteButton.visibility = View.GONE
         }
 
-        // Load expense types and income types
+        // Load categories
         lifecycleScope.launch {
             viewModel.allExpenseTypes.collectLatest { types ->
                 expenseTypes = types
-                if (!isIncome) {
-                    setupTypeAutoComplete()
-                }
+                if (!isIncome) setupCategoryAutoComplete()
             }
         }
 
         lifecycleScope.launch {
             viewModel.allIncomeTypes.collectLatest { types ->
                 incomeTypes = types
-                if (isIncome) {
-                    setupTypeAutoComplete()
-                }
+                if (isIncome) setupCategoryAutoComplete()
             }
         }
 
-        // Load expense if editing
+        // Load existing data if editing
         if (expenseId != null) {
             lifecycleScope.launch {
                 val expense = viewModel.getExpenseById(expenseId!!)
                 expense?.let {
                     isIncome = it.isIncome
+                    entryTypeAutoComplete.setText(if (isIncome) "Income" else "Expense", false)
                     amountEditText.setText(it.amount.toString())
                     descriptionEditText.setText(it.description)
+                    createdByEmail = it.createdByEmail
+                    
+                    updateCategoryUiLabels()
                     
                     if (it.isIncome) {
-                        supportActionBar?.title = getString(R.string.edit_income)
-                        typeLabelTextView.text = getString(R.string.income_type)
-                        typeHintTextView.text = getString(R.string.select_income_type)
-                        // Load income type
-                        val incomeTypeId = it.incomeTypeId ?: it.expenseTypeId // Backward compatibility
+                        val incomeTypeId = it.incomeTypeId ?: it.expenseTypeId
                         if (incomeTypeId != null) {
                             val type = viewModel.getIncomeTypeById(incomeTypeId)
                             type?.let { incomeType ->
@@ -131,10 +150,6 @@ class AddEditExpenseActivity : AppCompatActivity() {
                             }
                         }
                     } else {
-                        supportActionBar?.title = getString(R.string.edit_expense)
-                        typeLabelTextView.text = getString(R.string.expense_type)
-                        typeHintTextView.text = getString(R.string.select_expense_type)
-                        // Load expense type
                         val expenseTypeId = it.expenseTypeId
                         if (expenseTypeId != null) {
                             val type = viewModel.getExpenseTypeById(expenseTypeId)
@@ -144,7 +159,7 @@ class AddEditExpenseActivity : AppCompatActivity() {
                             }
                         }
                     }
-                    setupTypeAutoComplete()
+                    setupCategoryAutoComplete()
                 }
             }
         }
@@ -167,20 +182,39 @@ class AddEditExpenseActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupTypeAutoComplete() {
-        val adapter = if (isIncome) {
-            android.widget.ArrayAdapter(
-                this,
-                android.R.layout.simple_dropdown_item_1line,
-                incomeTypes.map { it.name }
-            )
-        } else {
-            android.widget.ArrayAdapter(
-                this,
-                android.R.layout.simple_dropdown_item_1line,
-                expenseTypes.map { it.name }
-            )
+    private fun setupEntryTypeDropdown() {
+        val entryTypes = arrayOf("Expense", "Income")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, entryTypes)
+        entryTypeAutoComplete.setAdapter(adapter)
+        
+        entryTypeAutoComplete.setOnItemClickListener { _, _, position, _ ->
+            val newIsIncome = position == 1
+            if (newIsIncome != isIncome) {
+                isIncome = newIsIncome
+                typeAutoComplete.setText("")
+                selectedExpenseType = null
+                selectedIncomeType = null
+                updateCategoryUiLabels()
+                setupCategoryAutoComplete()
+            }
         }
+    }
+
+    private fun updateCategoryUiLabels() {
+        if (isIncome) {
+            supportActionBar?.title = if (expenseId == null) getString(R.string.add_income) else getString(R.string.edit_income)
+            typeLabelTextView.text = getString(R.string.income_type)
+            typeHintTextView.text = getString(R.string.select_income_type)
+        } else {
+            supportActionBar?.title = if (expenseId == null) getString(R.string.add_expense) else getString(R.string.edit_expense)
+            typeLabelTextView.text = getString(R.string.expense_type)
+            typeHintTextView.text = getString(R.string.select_expense_type)
+        }
+    }
+
+    private fun setupCategoryAutoComplete() {
+        val categories = if (isIncome) incomeTypes.map { it.name } else expenseTypes.map { it.name }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categories)
         typeAutoComplete.setAdapter(adapter)
     }
 
@@ -200,17 +234,27 @@ class AddEditExpenseActivity : AppCompatActivity() {
             return
         }
 
+        // Verify selection again from text if needed
+        val currentTypeText = typeAutoComplete.text.toString()
         if (isIncome) {
+            if (selectedIncomeType == null || selectedIncomeType?.name != currentTypeText) {
+                selectedIncomeType = incomeTypes.find { it.name == currentTypeText }
+            }
             if (selectedIncomeType == null) {
                 Toast.makeText(this, getString(R.string.select_income_type), Toast.LENGTH_SHORT).show()
                 return
             }
         } else {
+            if (selectedExpenseType == null || selectedExpenseType?.name != currentTypeText) {
+                selectedExpenseType = expenseTypes.find { it.name == currentTypeText }
+            }
             if (selectedExpenseType == null) {
                 Toast.makeText(this, getString(R.string.select_expense_type), Toast.LENGTH_SHORT).show()
                 return
             }
         }
+
+        val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email
 
         lifecycleScope.launch {
             val expense = if (expenseId != null) {
@@ -220,7 +264,8 @@ class AddEditExpenseActivity : AppCompatActivity() {
                     incomeTypeId = if (isIncome) selectedIncomeType!!.id else null,
                     amount = amount,
                     description = description,
-                    isIncome = isIncome
+                    isIncome = isIncome,
+                    createdByEmail = createdByEmail ?: currentUserEmail
                 )
             } else {
                 Expense(
@@ -228,7 +273,8 @@ class AddEditExpenseActivity : AppCompatActivity() {
                     incomeTypeId = if (isIncome) selectedIncomeType!!.id else null,
                     amount = amount,
                     description = description,
-                    isIncome = isIncome
+                    isIncome = isIncome,
+                    createdByEmail = currentUserEmail
                 )
             }
 
@@ -238,27 +284,17 @@ class AddEditExpenseActivity : AppCompatActivity() {
                 viewModel.insertExpense(expense)
             }
 
-            // Send WhatsApp message if enabled
-            val isWhatsAppEnabled = viewModel.isWhatsAppEnabled()
-            if (isWhatsAppEnabled) {
-                val groupId = viewModel.getWhatsAppGroupId()
+            // Send WhatsApp message
+            val groupId = viewModel.getWhatsAppGroupId()
+            if (groupId != null && groupId.isNotEmpty()) {
                 val typeName = if (isIncome) selectedIncomeType?.name else selectedExpenseType?.name
-                if (groupId != null && groupId.isNotEmpty()) {
-                    WhatsAppHelper.sendExpenseUpdateToGroup(
-                        this@AddEditExpenseActivity,
-                        groupId,
-                        expense,
-                        null, // This needs to be updated to handle both types
-                        expenseId == null
-                    )
-                } else {
-                    WhatsAppHelper.sendExpenseUpdate(
-                        this@AddEditExpenseActivity,
-                        expense,
-                        null, // This needs to be updated to handle both types
-                        expenseId == null
-                    )
-                }
+                WhatsAppHelper.sendExpenseUpdateToGroup(
+                    this@AddEditExpenseActivity,
+                    groupId,
+                    expense,
+                    typeName, 
+                    expenseId == null
+                )
             }
 
             finish()
