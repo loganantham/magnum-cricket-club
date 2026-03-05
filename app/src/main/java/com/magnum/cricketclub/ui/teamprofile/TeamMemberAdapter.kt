@@ -8,17 +8,21 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import com.magnum.cricketclub.R
 import com.magnum.cricketclub.data.UserProfile
 
-class TeamMemberAdapter : ListAdapter<UserProfile, TeamMemberAdapter.TeamMemberViewHolder>(DiffCallback()) {
+class TeamMemberAdapter(
+    private val isAdmin: Boolean,
+    private val onEditClick: (UserProfile) -> Unit
+) : ListAdapter<UserProfile, TeamMemberAdapter.TeamMemberViewHolder>(DiffCallback()) {
 
     private var expandedPosition = -1
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TeamMemberViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_team_member, parent, false)
-        return TeamMemberViewHolder(view)
+        return TeamMemberViewHolder(view, isAdmin, onEditClick)
     }
 
     override fun onBindViewHolder(holder: TeamMemberViewHolder, position: Int) {
@@ -35,13 +39,19 @@ class TeamMemberAdapter : ListAdapter<UserProfile, TeamMemberAdapter.TeamMemberV
         }
     }
 
-    class TeamMemberViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class TeamMemberViewHolder(
+        itemView: View,
+        private val isAdmin: Boolean,
+        private val onEditClick: (UserProfile) -> Unit
+    ) : RecyclerView.ViewHolder(itemView) {
         private val nameTextView: TextView = itemView.findViewById(R.id.nameTextView)
         private val emailTextView: TextView = itemView.findViewById(R.id.emailTextView)
         private val roleTextView: TextView = itemView.findViewById(R.id.roleTextView)
         private val mobileTextView: TextView = itemView.findViewById(R.id.mobileTextView)
         private val alternateMobileTextView: TextView = itemView.findViewById(R.id.alternateMobileTextView)
         private val alternateMobileLayout: LinearLayout = itemView.findViewById(R.id.alternateMobileLayout)
+        private val responsibilityTextView: TextView = itemView.findViewById(R.id.responsibilityTextView)
+        private val editPlayerButton: MaterialButton = itemView.findViewById(R.id.editPlayerButton)
         private val detailsLayout: LinearLayout = itemView.findViewById(R.id.detailsLayout)
         private val cardView: com.google.android.material.card.MaterialCardView = itemView as com.google.android.material.card.MaterialCardView
 
@@ -53,6 +63,7 @@ class TeamMemberAdapter : ListAdapter<UserProfile, TeamMemberAdapter.TeamMemberV
             // Set details
             emailTextView.text = profile.email
             mobileTextView.text = profile.mobileNumber ?: "-"
+            responsibilityTextView.text = profile.additionalResponsibility?.replace(",", ", ") ?: "None"
             
             // Handle alternate mobile number
             val alternateMobile = profile.alternateMobileNumber
@@ -61,6 +72,16 @@ class TeamMemberAdapter : ListAdapter<UserProfile, TeamMemberAdapter.TeamMemberV
                 alternateMobileLayout.visibility = View.VISIBLE
             } else {
                 alternateMobileLayout.visibility = View.GONE
+            }
+            
+            // Show edit button only for authorized user
+            if (isAdmin) {
+                editPlayerButton.visibility = View.VISIBLE
+                editPlayerButton.setOnClickListener {
+                    onEditClick(profile)
+                }
+            } else {
+                editPlayerButton.visibility = View.GONE
             }
             
             // Toggle details visibility

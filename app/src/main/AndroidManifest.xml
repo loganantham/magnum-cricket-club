@@ -73,6 +73,11 @@
             android:parentActivityName=".ui.home.HomeActivity" />
         
         <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.me.MeActivity" />
+        
+        <activity
             android:name=".ui.teamprofile.TeamProfileActivity"
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />

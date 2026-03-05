@@ -8,8 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [Expense::class, ExpenseType::class, IncomeType::class, AppConfig::class, UserProfile::class],
-    version = 5,
+    entities = [Expense::class, ExpenseType::class, IncomeType::class, AppConfig::class, UserProfile::class, ContributionLedgerEntry::class],
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -18,6 +18,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun incomeTypeDao(): IncomeTypeDao
     abstract fun appConfigDao(): AppConfigDao
     abstract fun userProfileDao(): UserProfileDao
+    abstract fun contributionLedgerDao(): ContributionLedgerDao
     
     companion object {
         @Volatile
@@ -47,6 +48,27 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL("ALTER TABLE user_profile ADD COLUMN additionalResponsibility TEXT")
             }
         }
+
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS contribution_ledger (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        contributorEmail TEXT NOT NULL,
+                        year INTEGER NOT NULL,
+                        monthIndex INTEGER NOT NULL,
+                        status TEXT NOT NULL,
+                        pendingAmount REAL NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_contribution_ledger_email_year " +
+                            "ON contribution_ledger(contributorEmail, year)"
+                )
+            }
+        }
         
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -55,7 +77,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "cricket_expense_database"
                 )
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
                 INSTANCE = instance
                 instance

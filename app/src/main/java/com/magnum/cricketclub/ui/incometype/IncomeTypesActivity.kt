@@ -2,7 +2,6 @@ package com.magnum.cricketclub.ui.incometype
 
 import android.os.Bundle
 import android.view.View
-import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
@@ -13,7 +12,8 @@ import com.magnum.cricketclub.R
 import com.magnum.cricketclub.data.IncomeType
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.textfield.TextInputEditText
+import android.widget.EditText
+import android.widget.TextView
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -68,10 +68,15 @@ class IncomeTypesActivity : AppCompatActivity() {
 
     private fun showAddEditDialog(incomeType: IncomeType?) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_edit_expense_type, null)
-        val nameEditText = dialogView.findViewById<TextInputEditText>(R.id.expenseTypeNameEditText)
-        val descriptionEditText = dialogView.findViewById<TextInputEditText>(R.id.expenseTypeDescriptionEditText)
+        val typeNameLabel = dialogView.findViewById<TextView>(R.id.typeNameLabelTextView)
+        val typeNameHint = dialogView.findViewById<TextView>(R.id.typeNameHintTextView)
+        val nameEditText = dialogView.findViewById<EditText>(R.id.expenseTypeNameEditText)
+        val descriptionEditText = dialogView.findViewById<EditText>(R.id.expenseTypeDescriptionEditText)
         val saveButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.saveButton)
         val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancelButton)
+
+        typeNameLabel.text = getString(R.string.income_type)
+        typeNameHint.text = getString(R.string.enter_income_type_name)
 
         if (incomeType != null) {
             nameEditText.setText(incomeType.name)
@@ -91,6 +96,7 @@ class IncomeTypesActivity : AppCompatActivity() {
                 nameEditText.error = getString(R.string.enter_income_type_name)
                 return@setOnClickListener
             }
+            nameEditText.error = null
 
             val updatedIncomeType = if (incomeType != null) {
                 incomeType.copy(name = name, description = description)

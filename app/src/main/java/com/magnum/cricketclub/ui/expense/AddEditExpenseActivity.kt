@@ -1,6 +1,8 @@
 package com.magnum.cricketclub.ui.expense
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -11,16 +13,19 @@ import com.magnum.cricketclub.data.Expense
 import com.magnum.cricketclub.data.ExpenseType
 import com.magnum.cricketclub.data.IncomeType
 import com.magnum.cricketclub.utils.WhatsAppHelper
+import android.widget.EditText
+import android.widget.TextView
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class AddEditExpenseActivity : AppCompatActivity() {
     private lateinit var viewModel: ExpenseViewModel
     private lateinit var typeAutoComplete: android.widget.AutoCompleteTextView
-    private lateinit var amountEditText: TextInputEditText
-    private lateinit var descriptionEditText: TextInputEditText
+    private lateinit var typeLabelTextView: TextView
+    private lateinit var typeHintTextView: TextView
+    private lateinit var amountEditText: EditText
+    private lateinit var descriptionEditText: EditText
     private lateinit var saveButton: MaterialButton
     private lateinit var deleteButton: MaterialButton
     
@@ -43,14 +48,31 @@ class AddEditExpenseActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this)[ExpenseViewModel::class.java]
 
         typeAutoComplete = findViewById(R.id.expenseTypeAutoComplete)
+        typeLabelTextView = findViewById(R.id.typeLabelTextView)
+        typeHintTextView = findViewById(R.id.typeHintTextView)
         amountEditText = findViewById(R.id.amountEditText)
         descriptionEditText = findViewById(R.id.descriptionEditText)
         saveButton = findViewById(R.id.saveButton)
         deleteButton = findViewById(R.id.deleteButton)
 
-        // Update hint based on context
-        val typeLayout = findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.typeInputLayout)
-        typeLayout.hint = if (isIncomeFromIntent) getString(R.string.income_type) else getString(R.string.expense_type)
+        typeLabelTextView.text = if (isIncomeFromIntent) getString(R.string.income_type) else getString(R.string.expense_type)
+        typeHintTextView.text = if (isIncomeFromIntent) getString(R.string.select_income_type) else getString(R.string.select_expense_type)
+
+        // Autocomplete UX: allow typing, show dropdown on tap/focus.
+        typeAutoComplete.threshold = 0
+        typeAutoComplete.setOnClickListener { typeAutoComplete.showDropDown() }
+        typeAutoComplete.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) typeAutoComplete.showDropDown()
+        }
+        typeAutoComplete.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                // If user types/edits manually, force re-selection from dropdown.
+                selectedIncomeType = null
+                selectedExpenseType = null
+            }
+        })
 
         if (expenseId != null) {
             // Will be updated after loading the expense
@@ -95,10 +117,10 @@ class AddEditExpenseActivity : AppCompatActivity() {
                     amountEditText.setText(it.amount.toString())
                     descriptionEditText.setText(it.description)
                     
-                    val typeLayout = findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.typeInputLayout)
                     if (it.isIncome) {
                         supportActionBar?.title = getString(R.string.edit_income)
-                        typeLayout.hint = getString(R.string.income_type)
+                        typeLabelTextView.text = getString(R.string.income_type)
+                        typeHintTextView.text = getString(R.string.select_income_type)
                         // Load income type
                         val incomeTypeId = it.incomeTypeId ?: it.expenseTypeId // Backward compatibility
                         if (incomeTypeId != null) {
@@ -110,7 +132,8 @@ class AddEditExpenseActivity : AppCompatActivity() {
                         }
                     } else {
                         supportActionBar?.title = getString(R.string.edit_expense)
-                        typeLayout.hint = getString(R.string.expense_type)
+                        typeLabelTextView.text = getString(R.string.expense_type)
+                        typeHintTextView.text = getString(R.string.select_expense_type)
                         // Load expense type
                         val expenseTypeId = it.expenseTypeId
                         if (expenseTypeId != null) {
@@ -126,11 +149,12 @@ class AddEditExpenseActivity : AppCompatActivity() {
             }
         }
 
-        typeAutoComplete.setOnItemClickListener { _, _, position, _ ->
+        typeAutoComplete.setOnItemClickListener { parent, _, position, _ ->
+            val selectedName = parent.getItemAtPosition(position) as? String
             if (isIncome) {
-                selectedIncomeType = incomeTypes[position]
+                selectedIncomeType = selectedName?.let { name -> incomeTypes.firstOrNull { it.name == name } }
             } else {
-                selectedExpenseType = expenseTypes[position]
+                selectedExpenseType = selectedName?.let { name -> expenseTypes.firstOrNull { it.name == name } }
             }
         }
 
@@ -178,7 +202,7 @@ class AddEditExpenseActivity : AppCompatActivity() {
 
         if (isIncome) {
             if (selectedIncomeType == null) {
-                Toast.makeText(this, getString(R.string.select_expense_type), Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.select_income_type), Toast.LENGTH_SHORT).show()
                 return
             }
         } else {
