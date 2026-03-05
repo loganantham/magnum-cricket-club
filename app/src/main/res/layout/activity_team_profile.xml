@@ -33,7 +33,7 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Upcoming Match Placeholder -->
+            <!-- Upcoming Match Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/upcomingMatchFormCard"
                 android:layout_width="match_parent"
@@ -42,8 +42,7 @@
                 app:cardBackgroundColor="@color/card_background"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="2dp"
-                app:strokeWidth="0dp"
-                android:visibility="gone">
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -87,514 +86,554 @@
                         android:orientation="vertical"
                         android:visibility="gone">
 
-                    <!-- Match Date -->
-                    <LinearLayout
-                        android:id="@+id/matchDateContainer"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:background="@drawable/input_field_background"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp"
-                        android:minHeight="64dp"
-                        android:gravity="top|start"
-                        android:layout_marginBottom="12dp"
-                        android:clickable="true"
-                        android:focusable="true">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_my_calendar"
-                            android:tint="#757575"
-                            android:layout_marginEnd="12dp"
-                            android:layout_gravity="top|start" />
-
+                        <!-- Sub-section: Match Details -->
                         <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:gravity="start|top">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/match_date"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/select_match_date"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_hint"
-                                android:layout_marginTop="4dp" />
-
-                            <TextView
-                                android:id="@+id/matchDateValueTextView"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text=""
-                                android:textSize="14sp"
-                                android:textColor="#212121"
-                                android:layout_marginTop="4dp" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                    <!-- Team 1 -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:background="@drawable/input_field_background"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp"
-                        android:minHeight="64dp"
-                        android:gravity="top|start"
-                        android:layout_marginBottom="12dp">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_group"
-                            android:tint="#757575"
-                            android:layout_marginEnd="12dp"
-                            android:layout_gravity="top|start" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:gravity="start|top">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/team_1"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
-
-                            <EditText
-                                android:id="@+id/team1EditText"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="textPersonName"
-                                android:background="@android:color/transparent"
-                                android:textColor="#212121"
-                                android:textSize="14sp"
-                                android:paddingTop="6dp"
-                                android:paddingBottom="0dp"
-                                android:paddingStart="0dp"
-                                android:paddingEnd="0dp"
-                                android:minHeight="0dp"
-                                android:includeFontPadding="false" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                    <!-- Team 2 -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:background="@drawable/input_field_background"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp"
-                        android:minHeight="64dp"
-                        android:gravity="top|start"
-                        android:layout_marginBottom="12dp">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_group"
-                            android:tint="#757575"
-                            android:layout_marginEnd="12dp"
-                            android:layout_gravity="top|start" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:gravity="start|top">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/team_2"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
-
-                            <EditText
-                                android:id="@+id/team2EditText"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="textPersonName"
-                                android:background="@android:color/transparent"
-                                android:textColor="#212121"
-                                android:textSize="14sp"
-                                android:paddingTop="6dp"
-                                android:paddingBottom="0dp"
-                                android:paddingStart="0dp"
-                                android:paddingEnd="0dp"
-                                android:minHeight="0dp"
-                                android:includeFontPadding="false" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                    <!-- Ground Name -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:background="@drawable/input_field_background"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp"
-                        android:minHeight="64dp"
-                        android:gravity="top|start"
-                        android:layout_marginBottom="12dp">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_group"
-                            android:tint="#757575"
-                            android:layout_marginEnd="12dp"
-                            android:layout_gravity="top|start" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:gravity="start|top">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/ground_name"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
-
-                            <EditText
-                                android:id="@+id/groundNameEditText"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="text"
-                                android:background="@android:color/transparent"
-                                android:textColor="#212121"
-                                android:textSize="14sp"
-                                android:paddingTop="6dp"
-                                android:paddingBottom="0dp"
-                                android:paddingStart="0dp"
-                                android:paddingEnd="0dp"
-                                android:minHeight="0dp"
-                                android:includeFontPadding="false" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                    <!-- Ground Location -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:background="@drawable/input_field_background"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp"
-                        android:minHeight="64dp"
-                        android:gravity="top|start"
-                        android:layout_marginBottom="12dp">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_share"
-                            android:tint="#757575"
-                            android:layout_marginEnd="12dp"
-                            android:layout_gravity="top|start" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:gravity="start|top">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/ground_location"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
-
-                            <EditText
-                                android:id="@+id/groundLocationEditText"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="textPostalAddress"
-                                android:background="@android:color/transparent"
-                                android:textColor="#212121"
-                                android:textSize="14sp"
-                                android:paddingTop="6dp"
-                                android:paddingBottom="0dp"
-                                android:paddingStart="0dp"
-                                android:paddingEnd="0dp"
-                                android:minHeight="0dp"
-                                android:includeFontPadding="false" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                    <!-- Ground Fees -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:background="@drawable/input_field_background"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp"
-                        android:minHeight="64dp"
-                        android:gravity="top|start"
-                        android:layout_marginBottom="12dp">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_money"
-                            android:tint="#757575"
-                            android:layout_marginEnd="12dp"
-                            android:layout_gravity="top|start" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:gravity="start|top">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Ground Fees"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
-
-                            <EditText
-                                android:id="@+id/groundFeesEditText"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="numberDecimal"
-                                android:background="@android:color/transparent"
-                                android:textColor="#212121"
-                                android:textSize="14sp"
-                                android:paddingTop="6dp"
-                                android:paddingBottom="0dp"
-                                android:paddingStart="0dp"
-                                android:paddingEnd="0dp"
-                                android:minHeight="0dp"
-                                android:includeFontPadding="false" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                    <!-- Overs -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:background="@drawable/input_field_background"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp"
-                        android:minHeight="64dp"
-                        android:gravity="top|start"
-                        android:layout_marginBottom="12dp">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_settings"
-                            android:tint="#757575"
-                            android:layout_marginEnd="12dp"
-                            android:layout_gravity="top|start" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:gravity="start|top">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Overs"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
-
-                            <EditText
-                                android:id="@+id/oversEditText"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="number"
-                                android:background="@android:color/transparent"
-                                android:textColor="#212121"
-                                android:textSize="14sp"
-                                android:paddingTop="6dp"
-                                android:paddingBottom="0dp"
-                                android:paddingStart="0dp"
-                                android:paddingEnd="0dp"
-                                android:minHeight="0dp"
-                                android:includeFontPadding="false" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
-
-                    <!-- Ball Provided Selection -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="12dp"
-                        android:paddingStart="4dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Ball Provided?"
-                            android:textSize="14sp"
-                            android:textColor="@color/text_primary" />
-
-                        <RadioGroup
-                            android:id="@+id/ballProvidedRadioGroup"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-                            <RadioButton
-                                android:id="@+id/ballProvidedYes"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Yes" />
-                            <RadioButton
-                                android:id="@+id/ballProvidedNo"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="No"
-                                android:checked="true" />
-                        </RadioGroup>
-                    </LinearLayout>
-
-                    <!-- Ball Details (Conditional) -->
-                    <LinearLayout
-                        android:id="@+id/ballDetailsLayout"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:visibility="gone">
-
-                        <LinearLayout
+                            android:id="@+id/matchDetailsHeader"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
-                            android:background="@drawable/input_field_background"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:paddingTop="12dp"
-                            android:paddingBottom="12dp"
-                            android:minHeight="64dp"
-                            android:gravity="top|start"
-                            android:layout_marginBottom="12dp">
+                            android:gravity="center_vertical"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp"
+                            android:layout_marginTop="8dp">
 
-                            <LinearLayout
+                            <TextView
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:orientation="vertical">
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="No. of Balls"
-                                    android:textSize="14sp"
-                                    android:textColor="@color/text_primary" />
-                                <EditText
-                                    android:id="@+id/noOfBallsEditText"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:inputType="number"
-                                    android:background="@android:color/transparent"
-                                    android:textColor="#212121"
-                                    android:textSize="14sp" />
-                            </LinearLayout>
+                                android:text="Match Details"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary" />
+
+                            <ImageView
+                                android:id="@+id/matchDetailsChevron"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@android:drawable/arrow_down_float"
+                                android:tint="@color/text_hint" />
                         </LinearLayout>
 
                         <LinearLayout
+                            android:id="@+id/matchDetailsContent"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <!-- Match Date -->
+                            <LinearLayout
+                                android:id="@+id/matchDateContainer"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:background="@drawable/input_field_background"
+                                android:paddingStart="16dp"
+                                android:paddingEnd="16dp"
+                                android:paddingTop="12dp"
+                                android:paddingBottom="12dp"
+                                android:minHeight="64dp"
+                                android:gravity="top|start"
+                                android:layout_marginBottom="12dp"
+                                android:clickable="true"
+                                android:focusable="true">
+
+                                <ImageView
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:src="@android:drawable/ic_menu_my_calendar"
+                                    android:tint="#757575"
+                                    android:layout_marginEnd="12dp" />
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/match_date"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/text_primary" />
+
+                                    <TextView
+                                        android:id="@+id/matchDateValueTextView"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/select_match_date"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/text_hint"
+                                        android:layout_marginTop="4dp" />
+
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Team 1 -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:background="@drawable/input_field_background"
+                                android:paddingStart="16dp"
+                                android:paddingEnd="16dp"
+                                android:paddingTop="12dp"
+                                android:paddingBottom="12dp"
+                                android:minHeight="64dp"
+                                android:gravity="top|start"
+                                android:layout_marginBottom="12dp">
+                                <ImageView
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:src="@drawable/ic_group"
+                                    android:tint="#757575"
+                                    android:layout_marginEnd="12dp" />
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/team_1"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/text_primary" />
+                                    <EditText
+                                        android:id="@+id/team1EditText"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="textPersonName"
+                                        android:background="@android:color/transparent"
+                                        android:textColor="#212121"
+                                        android:textSize="14sp"
+                                        android:paddingTop="6dp" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Team 2 -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:background="@drawable/input_field_background"
+                                android:paddingStart="16dp"
+                                android:paddingEnd="16dp"
+                                android:paddingTop="12dp"
+                                android:paddingBottom="12dp"
+                                android:minHeight="64dp"
+                                android:gravity="top|start"
+                                android:layout_marginBottom="12dp">
+                                <ImageView
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:src="@drawable/ic_group"
+                                    android:tint="#757575"
+                                    android:layout_marginEnd="12dp" />
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/team_2"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/text_primary" />
+                                    <EditText
+                                        android:id="@+id/team2EditText"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="textPersonName"
+                                        android:background="@android:color/transparent"
+                                        android:textColor="#212121"
+                                        android:textSize="14sp"
+                                        android:paddingTop="6dp" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Ground Name -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:background="@drawable/input_field_background"
+                                android:paddingStart="16dp"
+                                android:paddingEnd="16dp"
+                                android:paddingTop="12dp"
+                                android:paddingBottom="12dp"
+                                android:minHeight="64dp"
+                                android:gravity="top|start"
+                                android:layout_marginBottom="12dp">
+                                <ImageView
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:src="@drawable/ic_group"
+                                    android:tint="#757575"
+                                    android:layout_marginEnd="12dp" />
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/ground_name"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/text_primary" />
+                                    <EditText
+                                        android:id="@+id/groundNameEditText"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="text"
+                                        android:background="@android:color/transparent"
+                                        android:textColor="#212121"
+                                        android:textSize="14sp"
+                                        android:paddingTop="6dp" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Ground Location -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:background="@drawable/input_field_background"
+                                android:paddingStart="16dp"
+                                android:paddingEnd="16dp"
+                                android:paddingTop="12dp"
+                                android:paddingBottom="12dp"
+                                android:minHeight="64dp"
+                                android:gravity="top|start"
+                                android:layout_marginBottom="12dp">
+                                <ImageView
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:src="@drawable/ic_share"
+                                    android:tint="#757575"
+                                    android:layout_marginEnd="12dp" />
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/ground_location"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/text_primary" />
+                                    <EditText
+                                        android:id="@+id/groundLocationEditText"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="textPostalAddress"
+                                        android:background="@android:color/transparent"
+                                        android:textColor="#212121"
+                                        android:textSize="14sp"
+                                        android:paddingTop="6dp" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Ground Fees -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:background="@drawable/input_field_background"
+                                android:paddingStart="16dp"
+                                android:paddingEnd="16dp"
+                                android:paddingTop="12dp"
+                                android:paddingBottom="12dp"
+                                android:minHeight="64dp"
+                                android:gravity="top|start"
+                                android:layout_marginBottom="12dp">
+                                <ImageView
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:src="@drawable/ic_money"
+                                    android:tint="#757575"
+                                    android:layout_marginEnd="12dp" />
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Ground Fees"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/text_primary" />
+                                    <EditText
+                                        android:id="@+id/groundFeesEditText"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="numberDecimal"
+                                        android:background="@android:color/transparent"
+                                        android:textColor="#212121"
+                                        android:textSize="14sp"
+                                        android:paddingTop="6dp" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Overs -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:background="@drawable/input_field_background"
+                                android:paddingStart="16dp"
+                                android:paddingEnd="16dp"
+                                android:paddingTop="12dp"
+                                android:paddingBottom="12dp"
+                                android:minHeight="64dp"
+                                android:gravity="top|start"
+                                android:layout_marginBottom="12dp">
+                                <ImageView
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:src="@drawable/ic_settings"
+                                    android:tint="#757575"
+                                    android:layout_marginEnd="12dp" />
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical">
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Overs"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/text_primary" />
+                                    <EditText
+                                        android:id="@+id/oversEditText"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:inputType="number"
+                                        android:background="@android:color/transparent"
+                                        android:textColor="#212121"
+                                        android:textSize="14sp"
+                                        android:paddingTop="6dp" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Ball Provided Selection -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                android:layout_marginBottom="12dp"
+                                android:paddingStart="4dp">
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Ball Provided?"
+                                    android:textSize="14sp"
+                                    android:textColor="@color/text_primary" />
+                                <RadioGroup
+                                    android:id="@+id/ballProvidedRadioGroup"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal">
+                                    <RadioButton
+                                        android:id="@+id/ballProvidedYes"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Yes" />
+                                    <RadioButton
+                                        android:id="@+id/ballProvidedNo"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="No"
+                                        android:checked="true" />
+                                </RadioGroup>
+                            </LinearLayout>
+
+                            <!-- Ball Details (Conditional) -->
+                            <LinearLayout
+                                android:id="@+id/ballDetailsLayout"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:visibility="gone">
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:background="@drawable/input_field_background"
+                                    android:paddingStart="16dp"
+                                    android:paddingEnd="16dp"
+                                    android:paddingTop="12dp"
+                                    android:paddingBottom="12dp"
+                                    android:minHeight="64dp"
+                                    android:gravity="top|start"
+                                    android:layout_marginBottom="12dp">
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:orientation="vertical">
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="No. of Balls"
+                                            android:textSize="14sp"
+                                            android:textColor="@color/text_primary" />
+                                        <EditText
+                                            android:id="@+id/noOfBallsEditText"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:inputType="number"
+                                            android:background="@android:color/transparent"
+                                            android:textColor="#212121"
+                                            android:textSize="14sp" />
+                                    </LinearLayout>
+                                </LinearLayout>
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:background="@drawable/input_field_background"
+                                    android:paddingStart="16dp"
+                                    android:paddingEnd="16dp"
+                                    android:paddingTop="12dp"
+                                    android:paddingBottom="12dp"
+                                    android:minHeight="64dp"
+                                    android:gravity="center_vertical"
+                                    android:layout_marginBottom="16dp">
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Ball Name"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/text_primary"
+                                        android:layout_marginEnd="12dp" />
+                                    <Spinner
+                                        android:id="@+id/ballNameSpinner"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/saveMatchButton"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/save_match_details"
+                                app:backgroundTint="@color/primary_color" />
+                        </LinearLayout>
+
+                        <!-- Sub-section: Player Availability -->
+                        <LinearLayout
+                            android:id="@+id/playerAvailabilityHeader"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
-                            android:background="@drawable/input_field_background"
-                            android:paddingStart="16dp"
-                            android:paddingEnd="16dp"
-                            android:paddingTop="12dp"
-                            android:paddingBottom="12dp"
-                            android:minHeight="64dp"
                             android:gravity="center_vertical"
-                            android:layout_marginBottom="16dp">
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:paddingTop="8dp"
+                            android:paddingBottom="8dp"
+                            android:layout_marginTop="8dp">
+
                             <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Ball Name"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary"
-                                android:layout_marginEnd="12dp" />
-                            <Spinner
-                                android:id="@+id/ballNameSpinner"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:layout_weight="1" />
-                        </LinearLayout>
-                    </LinearLayout>
+                                android:layout_weight="1"
+                                android:text="Player Availability"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_primary" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/saveMatchButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/save_match_details"
-                        app:backgroundTint="@color/primary_color" />
+                            <ImageView
+                                android:id="@+id/playerAvailabilityChevron"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@android:drawable/arrow_down_float"
+                                android:tint="@color/text_hint" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/playerAvailabilityContent"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:visibility="gone">
+
+                            <!-- Filter Section -->
+                            <com.google.android.material.button.MaterialButtonToggleGroup
+                                android:id="@+id/availabilityFilterGroup"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center"
+                                android:layout_marginTop="8dp"
+                                android:layout_marginBottom="8dp"
+                                app:singleSelection="true"
+                                app:selectionRequired="true"
+                                app:checkedButton="@+id/filterAll">
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/filterAll"
+                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="All"
+                                    android:textSize="12sp" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/filterAvailable"
+                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Available"
+                                    android:textSize="12sp" />
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/filterNotAvailable"
+                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Not Available"
+                                    android:textSize="12sp" />
+
+                            </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:id="@+id/availabilityRecyclerView"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:nestedScrollingEnabled="false"
+                                android:layout_marginTop="8dp" />
+
+                            <TextView
+                                android:id="@+id/emptyAvailabilityTextView"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="No availability updates yet"
+                                android:textSize="14sp"
+                                android:textColor="@color/text_hint"
+                                android:gravity="center"
+                                android:padding="16dp"
+                                android:visibility="gone" />
+
+                        </LinearLayout>
 
                     </LinearLayout>
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Team Members Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/teamMembersCard"
                 android:layout_width="match_parent"

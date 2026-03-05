@@ -3,6 +3,7 @@ package com.magnum.cricketclub.data.remote
 import com.magnum.cricketclub.data.Expense
 import com.magnum.cricketclub.data.ExpenseType
 import com.magnum.cricketclub.data.IncomeType
+import com.magnum.cricketclub.data.UpcomingMatch
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 
@@ -33,7 +34,7 @@ class FirestoreRepository {
     suspend fun uploadExpense(expense: Expense) {
         if (!isFirebaseAvailable()) return
         val userId = getCurrentUserId() ?: return
-        val teamId = getCurrentTeamId() ?: return
+        val teamId = getCurrentTeamId()
 
         val firestoreExpense = FirestoreExpense(
             id = expense.id,
@@ -56,7 +57,7 @@ class FirestoreRepository {
 
     suspend fun downloadExpenses(): List<Expense> {
         if (!isFirebaseAvailable()) return emptyList()
-        val teamId = getCurrentTeamId() ?: return emptyList()
+        val teamId = getCurrentTeamId()
 
         val snapshot = firestore!!.collection("expenses")
             .whereEqualTo("teamId", teamId)
@@ -85,13 +86,10 @@ class FirestoreRepository {
         expenseRef.update("isDeleted", true, "lastModified", System.currentTimeMillis()).await()
     }
 
-    // Note: Real-time observation can be implemented using callbackFlow if needed
-    // For now, we use periodic sync instead
-
     // Expense Types
     suspend fun uploadExpenseType(expenseType: ExpenseType) {
         if (!isFirebaseAvailable()) return
-        val teamId = getCurrentTeamId() ?: return
+        val teamId = getCurrentTeamId()
 
         val firestoreType = FirestoreExpenseType(
             id = expenseType.id,
@@ -109,7 +107,7 @@ class FirestoreRepository {
 
     suspend fun downloadExpenseTypes(): List<ExpenseType> {
         if (!isFirebaseAvailable()) return emptyList()
-        val teamId = getCurrentTeamId() ?: return emptyList()
+        val teamId = getCurrentTeamId()
 
         val snapshot = firestore!!.collection("expenseTypes")
             .whereEqualTo("teamId", teamId)
@@ -138,7 +136,7 @@ class FirestoreRepository {
     // Income Types
     suspend fun uploadIncomeType(incomeType: IncomeType) {
         if (!isFirebaseAvailable()) return
-        val teamId = getCurrentTeamId() ?: return
+        val teamId = getCurrentTeamId()
 
         val firestoreType = FirestoreIncomeType(
             id = incomeType.id,
@@ -156,7 +154,7 @@ class FirestoreRepository {
 
     suspend fun downloadIncomeTypes(): List<IncomeType> {
         if (!isFirebaseAvailable()) return emptyList()
-        val teamId = getCurrentTeamId() ?: return emptyList()
+        val teamId = getCurrentTeamId()
 
         val snapshot = firestore!!.collection("incomeTypes")
             .whereEqualTo("teamId", teamId)
@@ -224,9 +222,8 @@ class FirestoreRepository {
             if (currentTeamId.isEmpty() || currentTeamId.isBlank()) {
                 try {
                     doc.reference.update("teamId", teamId, "lastModified", System.currentTimeMillis()).await()
-                    android.util.Log.d("FirestoreRepository", "Updated teamId to 'magnum' for user: ${doc.id}")
                 } catch (e: Exception) {
-                    android.util.Log.e("FirestoreRepository", "Error updating teamId for user: ${doc.id}", e)
+                    // Log error if needed
                 }
             }
         }
@@ -248,6 +245,110 @@ class FirestoreRepository {
                 additionalResponsibility = data.additionalResponsibility
             )
         }
+    }
+
+    // Upcoming Match
+    suspend fun uploadUpcomingMatch(match: UpcomingMatch) {
+        if (!isFirebaseAvailable()) return
+        val teamId = getCurrentTeamId()
+
+        val firestoreMatch = FirestoreUpcomingMatch(
+            dateUtcMillis = match.dateUtcMillis,
+            team1 = match.team1,
+            team2 = match.team2,
+            groundName = match.groundName,
+            groundLocation = match.groundLocation,
+            groundFees = match.groundFees,
+            ballProvided = match.ballProvided,
+            noOfBalls = match.noOfBalls,
+            ballName = match.ballName,
+            overs = match.overs,
+            teamId = teamId,
+            lastModified = System.currentTimeMillis()
+        )
+
+        firestore!!.collection("upcomingMatches")
+            .document(teamId) // Use teamId as document ID since there's only one upcoming match per team
+            .set(firestoreMatch)
+            .await()
+    }
+
+    suspend fun downloadUpcomingMatch(): UpcomingMatch? {
+        if (!isFirebaseAvailable()) return null
+        val teamId = getCurrentTeamId()
+
+        val doc = firestore!!.collection("upcomingMatches")
+            .document(teamId)
+            .get()
+            .await()
+
+        if (!doc.exists()) return null
+
+        val data = doc.toObject(FirestoreUpcomingMatch::class.java) ?: return null
+        return UpcomingMatch(
+            dateUtcMillis = data.dateUtcMillis,
+            team1 = data.team1,
+            team2 = data.team2,
+            groundName = data.groundName,
+            groundLocation = data.groundLocation,
+            groundFees = data.groundFees,
+            ballProvided = data.ballProvided,
+            noOfBalls = data.noOfBalls,
+            ballName = data.ballName,
+            overs = data.overs
+        )
+    }
+
+    // Match Availability
+    suspend fun uploadMatchAvailability(available: Boolean, matchDate: Long, reason: String? = null) {
+        if (!isFirebaseAvailable()) return
+        val userEmail = getCurrentUserEmail() ?: return
+        val teamId = getCurrentTeamId()
+
+        val firestoreAvailability = FirestoreMatchAvailability(
+            userEmail = userEmail,
+            available = available,
+            reason = reason,
+            teamId = teamId,
+            matchDate = matchDate,
+            lastModified = System.currentTimeMillis()
+        )
+
+        firestore!!.collection("matchAvailability")
+            .document("${userEmail}_${matchDate}")
+            .set(firestoreAvailability)
+            .await()
+    }
+
+    suspend fun downloadMatchAvailability(matchDate: Long): FirestoreMatchAvailability? {
+        if (!isFirebaseAvailable()) return null
+        val userEmail = getCurrentUserEmail() ?: return null
+
+        val doc = firestore!!.collection("matchAvailability")
+            .document("${userEmail}_${matchDate}")
+            .get()
+            .await()
+
+        if (!doc.exists()) return null
+
+        return doc.toObject(FirestoreMatchAvailability::class.java)
+    }
+
+    suspend fun downloadAllMatchAvailabilities(matchDate: Long, available: Boolean? = null): List<FirestoreMatchAvailability> {
+        if (!isFirebaseAvailable()) return emptyList()
+        val teamId = getCurrentTeamId()
+
+        var query = firestore!!.collection("matchAvailability")
+            .whereEqualTo("teamId", teamId)
+            .whereEqualTo("matchDate", matchDate)
+
+        if (available != null) {
+            query = query.whereEqualTo("available", available)
+        }
+
+        val snapshot = query.get().await()
+
+        return snapshot.documents.mapNotNull { it.toObject(FirestoreMatchAvailability::class.java) }
     }
 
     // Authentication
