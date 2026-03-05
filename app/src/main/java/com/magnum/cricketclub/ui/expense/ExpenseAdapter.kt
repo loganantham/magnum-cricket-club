@@ -16,11 +16,15 @@ import com.google.android.material.button.MaterialButton
 
 class ExpenseAdapter(
     private val onEditClick: (Expense) -> Unit,
-    private val onDeleteClick: (Expense) -> Unit
+    private val onDeleteClick: (Expense) -> Unit,
+    private val onShareClick: (Expense, String?) -> Unit,
+    private val showBalance: Boolean = false,
+    private var showActions: Boolean = false
 ) : ListAdapter<Expense, ExpenseAdapter.ExpenseViewHolder>(ExpenseDiffCallback()) {
 
     private var expenseTypes: Map<Long, ExpenseType> = emptyMap()
     private var incomeTypes: Map<Long, IncomeType> = emptyMap()
+    private var runningBalances: Map<Long, Double> = emptyMap()
 
     fun setExpenseTypes(types: List<ExpenseType>) {
         expenseTypes = types.associateBy { it.id }
@@ -29,6 +33,16 @@ class ExpenseAdapter(
 
     fun setIncomeTypes(types: List<IncomeType>) {
         incomeTypes = types.associateBy { it.id }
+        notifyDataSetChanged()
+    }
+
+    fun setRunningBalances(balances: Map<Long, Double>) {
+        runningBalances = balances
+        notifyDataSetChanged()
+    }
+
+    fun setShowActions(show: Boolean) {
+        showActions = show
         notifyDataSetChanged()
     }
 
@@ -45,14 +59,18 @@ class ExpenseAdapter(
     inner class ExpenseViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val expenseTypeTextView: TextView = itemView.findViewById(R.id.expenseTypeTextView)
         private val descriptionTextView: TextView = itemView.findViewById(R.id.descriptionTextView)
+        private val createdByTextView: TextView = itemView.findViewById(R.id.createdByTextView)
         private val dateTextView: TextView = itemView.findViewById(R.id.dateTextView)
         private val amountTextView: TextView = itemView.findViewById(R.id.amountTextView)
+        private val runningBalanceTextView: TextView = itemView.findViewById(R.id.runningBalanceTextView)
         private val editButton: MaterialButton = itemView.findViewById(R.id.editButton)
         private val deleteButton: MaterialButton = itemView.findViewById(R.id.deleteButton)
+        private val shareButton: MaterialButton = itemView.findViewById(R.id.shareButton)
+        private val actionsLayout: View = itemView.findViewById(R.id.actionsLayout)
 
         fun bind(expense: Expense) {
             val typeName = if (expense.isIncome) {
-                val incomeTypeId = expense.incomeTypeId ?: expense.expenseTypeId // Backward compatibility
+                val incomeTypeId = expense.incomeTypeId ?: expense.expenseTypeId
                 incomeTypes[incomeTypeId]?.name ?: "Unknown"
             } else {
                 expenseTypes[expense.expenseTypeId]?.name ?: "Unknown"
@@ -65,7 +83,8 @@ class ExpenseAdapter(
             } else {
                 descriptionTextView.visibility = View.GONE
             }
-            
+
+            createdByTextView.text = "Added by: ${expense.createdByEmail ?: "Unknown"}"
             dateTextView.text = DateUtils.formatDateTime(expense.date)
             
             val sign = if (expense.isIncome) "+" else "-"
@@ -76,9 +95,20 @@ class ExpenseAdapter(
             
             amountTextView.text = "$sign₹${String.format("%.2f", expense.amount)}"
             amountTextView.setTextColor(color)
+
+            if (showBalance) {
+                val bal = runningBalances[expense.id] ?: 0.0
+                runningBalanceTextView.text = "Bal: ₹${String.format("%.2f", bal)}"
+                runningBalanceTextView.visibility = View.VISIBLE
+            } else {
+                runningBalanceTextView.visibility = View.GONE
+            }
+
+            actionsLayout.visibility = if (showActions) View.VISIBLE else View.GONE
             
             editButton.setOnClickListener { onEditClick(expense) }
             deleteButton.setOnClickListener { onDeleteClick(expense) }
+            shareButton.setOnClickListener { onShareClick(expense, typeName) }
         }
     }
 

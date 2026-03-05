@@ -10,7 +10,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 object WhatsAppHelper {
-    fun sendExpenseUpdate(context: Context, expense: Expense, expenseType: ExpenseType?, isNew: Boolean) {
+    fun sendExpenseUpdate(context: Context, expense: Expense, categoryName: String?, isNew: Boolean) {
         try {
             val action = if (isNew) "Added" else "Updated"
             val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
@@ -19,13 +19,14 @@ object WhatsAppHelper {
             val sign = if (expense.isIncome) "+" else "-"
             
             val message = """
-                🏏 Cricket Team Expense Update
+                🏏 Cricket Team Update
                 
                 $action: $type
-                Type: ${expenseType?.name ?: "Unknown"}
+                Category: ${categoryName ?: "Unknown"}
                 Amount: $sign₹${String.format("%.2f", expense.amount)}
                 ${if (expense.description.isNotEmpty()) "Description: ${expense.description}\n" else ""}
                 Date: $dateStr
+                By: ${expense.createdByEmail ?: "Unknown"}
             """.trimIndent()
             
             val intent = Intent(Intent.ACTION_SEND)
@@ -46,7 +47,7 @@ object WhatsAppHelper {
         }
     }
     
-    fun sendExpenseUpdateToGroup(context: Context, groupId: String, expense: Expense, expenseType: ExpenseType?, isNew: Boolean) {
+    fun sendExpenseUpdateToGroup(context: Context, groupId: String, expense: Expense, categoryName: String?, isNew: Boolean) {
         try {
             val action = if (isNew) "Added" else "Updated"
             val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
@@ -55,30 +56,38 @@ object WhatsAppHelper {
             val sign = if (expense.isIncome) "+" else "-"
             
             val message = """
-                🏏 Cricket Team Expense Update
+                🏏 Cricket Team Update
                 
                 $action: $type
-                Type: ${expenseType?.name ?: "Unknown"}
+                Category: ${categoryName ?: "Unknown"}
                 Amount: $sign₹${String.format("%.2f", expense.amount)}
                 ${if (expense.description.isNotEmpty()) "Description: ${expense.description}\n" else ""}
                 Date: $dateStr
+                By: ${expense.createdByEmail ?: "Unknown"}
             """.trimIndent()
             
-            // Try to open WhatsApp with group ID
-            val uri = Uri.parse("https://chat.whatsapp.com/$groupId")
+            // Try to open WhatsApp with group invite link format
+            val inviteLink = if (groupId.startsWith("http")) groupId else "https://chat.whatsapp.com/$groupId"
+            val uri = Uri.parse(inviteLink)
             val intent = Intent(Intent.ACTION_VIEW, uri)
-            intent.putExtra(Intent.EXTRA_TEXT, message)
+            // Note: Sending message directly to group URI isn't reliably supported by intent, 
+            // so we copy text to clipboard or use SEND intent as fallback.
             
-            if (intent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(intent)
-            } else {
-                // Fallback: Open WhatsApp and let user select group
-                val fallbackIntent = Intent(Intent.ACTION_SEND)
-                fallbackIntent.type = "text/plain"
-                fallbackIntent.setPackage("com.whatsapp")
-                fallbackIntent.putExtra(Intent.EXTRA_TEXT, message)
-                context.startActivity(fallbackIntent)
-            }
+            val sendIntent = Intent(Intent.ACTION_SEND)
+            sendIntent.type = "text/plain"
+            sendIntent.setPackage("com.whatsapp")
+            sendIntent.putExtra(Intent.EXTRA_TEXT, message)
+            
+            // First open the group, then user can paste/send.
+            context.startActivity(intent)
+            
+            // Brief delay then show send intent? Or just show send intent and user selects group.
+            // WhatsApp doesn't support "send to group ID" via public intent API easily.
+            // Most reliable is ACTION_SEND and user picks the group.
+            
+            Toast.makeText(context, "Opening WhatsApp. Please select the group to post update.", Toast.LENGTH_LONG).show()
+            context.startActivity(Intent.createChooser(sendIntent, "Post to WhatsApp Group"))
+            
         } catch (e: Exception) {
             Toast.makeText(context, "Failed to open WhatsApp: ${e.message}", Toast.LENGTH_SHORT).show()
         }
@@ -126,15 +135,7 @@ object WhatsAppHelper {
             val uri = Uri.parse("https://wa.me/$cleanNumber?text=${Uri.encode(message)}")
             val intent = Intent(Intent.ACTION_VIEW, uri)
 
-            if (intent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(intent)
-            } else {
-                Toast.makeText(
-                    context,
-                    context.getString(com.magnum.cricketclub.R.string.whatsapp_not_installed),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            context.startActivity(intent)
         } catch (e: Exception) {
             Toast.makeText(
                 context,

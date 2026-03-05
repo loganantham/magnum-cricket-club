@@ -31,4 +31,13 @@ data class UserProfile(
         val responsibilities = additionalResponsibility?.split(",")?.map { it.trim() } ?: emptyList()
         return responsibilities.contains("Finance Maintenance") || isAdmin()
     }
+
+    fun isFinanceMaintenance(): Boolean {
+        return canManageFinance()
+    }
+
+    fun isFinanceContributor(): Boolean {
+        val responsibilities = additionalResponsibility?.split(",")?.map { it.trim() } ?: emptyList()
+        return responsibilities.contains("Finance Contributor") || isFinanceMaintenance()
+    }
 }

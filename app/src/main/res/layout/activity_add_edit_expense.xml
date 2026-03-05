@@ -10,6 +10,73 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <!-- Entry Type (Income/Expense) -->
+        <LinearLayout
+            android:id="@+id/entryTypeLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/input_field_background"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:minHeight="64dp"
+            android:gravity="top|start"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginBottom="16dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_group"
+                android:tint="#757575"
+                android:layout_marginEnd="12dp"
+                android:layout_gravity="top|start" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="start|top">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Entry Type"
+                    android:textSize="14sp"
+                    android:textColor="#424242" />
+
+                <TextView
+                    android:id="@+id/entryTypeHintTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Select Income or Expense"
+                    android:textSize="14sp"
+                    android:textColor="#9E9E9E"
+                    android:layout_marginTop="4dp" />
+
+                <AutoCompleteTextView
+                    android:id="@+id/entryTypeAutoComplete"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"
+                    android:completionThreshold="0"
+                    android:background="@android:color/transparent"
+                    android:textColor="#212121"
+                    android:textSize="14sp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="0dp"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="0dp"
+                    android:minHeight="0dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
         <!-- Type field (Expense Type / Income Type) - Settings style -->
         <LinearLayout
             android:id="@+id/typeInputLayout"
@@ -23,6 +90,8 @@
             android:paddingBottom="12dp"
             android:minHeight="64dp"
             android:gravity="top|start"
+            android:clickable="true"
+            android:focusable="true"
             android:layout_marginBottom="16dp">
 
             <ImageView
@@ -78,6 +147,7 @@
 
         <!-- Amount field - Settings style -->
         <LinearLayout
+            android:id="@+id/amountLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -160,6 +230,7 @@
 
         <!-- Description field - Settings style -->
         <LinearLayout
+            android:id="@+id/descriptionLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
