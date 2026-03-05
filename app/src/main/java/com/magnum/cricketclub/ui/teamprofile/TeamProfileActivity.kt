@@ -7,7 +7,6 @@ import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.Spinner
 import android.widget.TextView
@@ -16,6 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.widget.Toast
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.DateValidatorPointForward
 import com.google.android.material.datepicker.MaterialDatePicker
@@ -24,6 +24,7 @@ import com.magnum.cricketclub.R
 import com.magnum.cricketclub.data.UpcomingMatch
 import com.magnum.cricketclub.data.UserProfile
 import com.magnum.cricketclub.data.UserProfileRepository
+import com.magnum.cricketclub.data.remote.FirestoreMatchAvailability
 import com.magnum.cricketclub.data.remote.FirestoreRepository
 import com.magnum.cricketclub.ui.BaseActivity
 import com.magnum.cricketclub.utils.UpcomingMatchStore
@@ -38,6 +39,18 @@ class TeamProfileActivity : BaseActivity() {
     private lateinit var upcomingMatchContent: LinearLayout
     private lateinit var upcomingMatchChevron: ImageView
     private lateinit var upcomingMatchFormCard: View
+
+    private lateinit var matchDetailsHeader: LinearLayout
+    private lateinit var matchDetailsContent: LinearLayout
+    private lateinit var matchDetailsChevron: ImageView
+
+    private lateinit var playerAvailabilityHeader: LinearLayout
+    private lateinit var playerAvailabilityContent: LinearLayout
+    private lateinit var playerAvailabilityChevron: ImageView
+    private lateinit var availabilityRecyclerView: RecyclerView
+    private lateinit var emptyAvailabilityTextView: TextView
+    private lateinit var playerAvailabilityAdapter: PlayerAvailabilityAdapter
+    private lateinit var availabilityFilterGroup: MaterialButtonToggleGroup
 
     private lateinit var teamMembersHeader: LinearLayout
     private lateinit var teamMembersContent: LinearLayout
@@ -66,6 +79,7 @@ class TeamProfileActivity : BaseActivity() {
     private var selectedMatchDateUtcMillis: Long? = null
     private var currentUserEmail: String = ""
     private var currentUserProfile: UserProfile? = null
+    private var allUserProfiles: List<UserProfile> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,6 +96,17 @@ class TeamProfileActivity : BaseActivity() {
         upcomingMatchHeader = findViewById(R.id.upcomingMatchHeader)
         upcomingMatchContent = findViewById(R.id.upcomingMatchContent)
         upcomingMatchChevron = findViewById(R.id.upcomingMatchChevron)
+
+        matchDetailsHeader = findViewById(R.id.matchDetailsHeader)
+        matchDetailsContent = findViewById(R.id.matchDetailsContent)
+        matchDetailsChevron = findViewById(R.id.matchDetailsChevron)
+
+        playerAvailabilityHeader = findViewById(R.id.playerAvailabilityHeader)
+        playerAvailabilityContent = findViewById(R.id.playerAvailabilityContent)
+        playerAvailabilityChevron = findViewById(R.id.playerAvailabilityChevron)
+        availabilityRecyclerView = findViewById(R.id.availabilityRecyclerView)
+        emptyAvailabilityTextView = findViewById(R.id.emptyAvailabilityTextView)
+        availabilityFilterGroup = findViewById(R.id.availabilityFilterGroup)
 
         teamMembersHeader = findViewById(R.id.teamMembersHeader)
         teamMembersContent = findViewById(R.id.teamMembersContent)
@@ -116,6 +141,8 @@ class TeamProfileActivity : BaseActivity() {
 
         // Collapsed by default
         setExpanded(upcomingMatchContent, upcomingMatchChevron, expanded = false)
+        setExpanded(matchDetailsContent, matchDetailsChevron, expanded = false)
+        setExpanded(playerAvailabilityContent, playerAvailabilityChevron, expanded = false)
         setExpanded(teamMembersContent, teamMembersChevron, expanded = false)
 
         upcomingMatchHeader.setOnClickListener {
@@ -123,16 +150,34 @@ class TeamProfileActivity : BaseActivity() {
             setExpanded(upcomingMatchContent, upcomingMatchChevron, expand)
         }
 
+        matchDetailsHeader.setOnClickListener {
+            val expand = matchDetailsContent.visibility != View.VISIBLE
+            setExpanded(matchDetailsContent, matchDetailsChevron, expand)
+        }
+
+        playerAvailabilityHeader.setOnClickListener {
+            val expand = playerAvailabilityContent.visibility != View.VISIBLE
+            setExpanded(playerAvailabilityContent, playerAvailabilityChevron, expand)
+            if (expand) loadPlayerAvailability()
+        }
+
         teamMembersHeader.setOnClickListener {
             val expand = teamMembersContent.visibility != View.VISIBLE
             setExpanded(teamMembersContent, teamMembersChevron, expand)
         }
 
+        availabilityFilterGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                loadPlayerAvailability(checkedId)
+            }
+        }
+
         setupUpcomingMatchForm()
         
         teamMembersRecyclerView.layoutManager = LinearLayoutManager(this)
+        availabilityRecyclerView.layoutManager = LinearLayoutManager(this)
         
-        loadTeamMembers()
+        loadData()
         
         setupBottomNavigation()
     }
@@ -143,27 +188,9 @@ class TeamProfileActivity : BaseActivity() {
     }
 
     private fun setupUpcomingMatchForm() {
-        val formatter = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
-        }
-
+        // Load local data first for immediate display
         UpcomingMatchStore.load(this)?.let { match ->
-            selectedMatchDateUtcMillis = match.dateUtcMillis
-            matchDateValueTextView.text = formatter.format(Date(match.dateUtcMillis))
-            team1EditText.setText(match.team1)
-            team2EditText.setText(match.team2)
-            groundNameEditText.setText(match.groundName)
-            groundLocationEditText.setText(match.groundLocation)
-            groundFeesEditText.setText(match.groundFees.toString())
-            oversEditText.setText(match.overs.toString())
-            if (match.ballProvided) {
-                ballProvidedRadioGroup.check(R.id.ballProvidedYes)
-                noOfBallsEditText.setText(match.noOfBalls.toString())
-                val ballIndex = listOf("SF Yorker", "SF True Test").indexOf(match.ballName)
-                if (ballIndex != -1) ballNameSpinner.setSelection(ballIndex)
-            } else {
-                ballProvidedRadioGroup.check(R.id.ballProvidedNo)
-            }
+            displayMatchDetails(match)
         }
 
         matchDateContainer.setOnClickListener {
@@ -178,6 +205,9 @@ class TeamProfileActivity : BaseActivity() {
 
             picker.addOnPositiveButtonClickListener { utcMillis ->
                 selectedMatchDateUtcMillis = utcMillis
+                val formatter = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }
                 matchDateValueTextView.text = formatter.format(Date(utcMillis))
             }
 
@@ -220,59 +250,106 @@ class TeamProfileActivity : BaseActivity() {
             }
             if (hasError) return@setOnClickListener
 
-            UpcomingMatchStore.save(
-                this,
-                UpcomingMatch(
-                    dateUtcMillis = date,
-                    team1 = team1,
-                    team2 = team2,
-                    groundName = groundName,
-                    groundLocation = groundLocation,
-                    groundFees = groundFees,
-                    overs = overs,
-                    ballProvided = ballProvided,
-                    noOfBalls = noOfBalls,
-                    ballName = ballName
-                )
+            val match = UpcomingMatch(
+                dateUtcMillis = date,
+                team1 = team1,
+                team2 = team2,
+                groundName = groundName,
+                groundLocation = groundLocation,
+                groundFees = groundFees,
+                overs = overs,
+                ballProvided = ballProvided,
+                noOfBalls = noOfBalls,
+                ballName = ballName
             )
+
+            // Save locally
+            UpcomingMatchStore.save(this, match)
+
+            // Save to Firestore
+            lifecycleScope.launch {
+                try {
+                    firestoreRepository.uploadUpcomingMatch(match)
+                    Toast.makeText(this@TeamProfileActivity, "Match details synced to cloud", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(this@TeamProfileActivity, "Saved locally. Sync failed.", Toast.LENGTH_SHORT).show()
+                }
+            }
 
             Toast.makeText(this, "Upcoming match saved", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun displayMatchDetails(match: UpcomingMatch) {
+        val formatter = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+        selectedMatchDateUtcMillis = match.dateUtcMillis
+        matchDateValueTextView.text = formatter.format(Date(match.dateUtcMillis))
+        team1EditText.setText(match.team1)
+        team2EditText.setText(match.team2)
+        groundNameEditText.setText(match.groundName)
+        groundLocationEditText.setText(match.groundLocation)
+        groundFeesEditText.setText(match.groundFees.toString())
+        oversEditText.setText(match.overs.toString())
+        if (match.ballProvided) {
+            ballProvidedRadioGroup.check(R.id.ballProvidedYes)
+            noOfBallsEditText.setText(match.noOfBalls.toString())
+            val ballIndex = listOf("SF Yorker", "SF True Test").indexOf(match.ballName)
+            if (ballIndex != -1) ballNameSpinner.setSelection(ballIndex)
+        } else {
+            ballProvidedRadioGroup.check(R.id.ballProvidedNo)
+        }
+    }
     
-    private fun loadTeamMembers() {
+    private fun loadData() {
         lifecycleScope.launch {
             try {
-                // 1. Fetch latest profiles from Firestore first
+                // 1. Fetch latest match details from Firestore
+                val remoteMatch = try {
+                    firestoreRepository.downloadUpcomingMatch()
+                } catch (e: Exception) {
+                    null
+                }
+                
+                remoteMatch?.let {
+                    UpcomingMatchStore.save(this@TeamProfileActivity, it)
+                    displayMatchDetails(it)
+                }
+
+                // 2. Fetch latest profiles from Firestore
                 val firebaseProfiles = try {
                     firestoreRepository.downloadAllUserProfiles()
                 } catch (e: Exception) {
                     emptyList()
                 }
                 
-                // 2. Update local DB with Firestore data to ensure roles are current
+                // 3. Update local DB with Firestore data to ensure roles are current
                 firebaseProfiles.forEach { profile ->
                     userProfileRepository.insertOrUpdate(profile)
                 }
 
-                // 3. Fetch all profiles including any local-only ones
+                // 4. Fetch all profiles including any local-only ones
                 val localProfiles = try {
                     userProfileRepository.getAllUserProfiles()
                 } catch (e: Exception) {
                     emptyList()
                 }
                 
-                val allProfiles = (firebaseProfiles + localProfiles).distinctBy { it.email }
+                allUserProfiles = (firebaseProfiles + localProfiles).distinctBy { it.email }
 
-                // 4. Identify current user's profile and roles using the LATEST data
-                currentUserProfile = allProfiles.find { it.email.equals(currentUserEmail, ignoreCase = true) }
+                // 5. Identify current user's profile and roles using the LATEST data
+                currentUserProfile = allUserProfiles.find { it.email.equals(currentUserEmail, ignoreCase = true) }
                     ?: userProfileRepository.getUserProfileSync(currentUserEmail)
                 
-                val canManageMatches = currentUserProfile?.canManageMatches() == true
                 val isAdmin = currentUserProfile?.isAdmin() == true
+                val canManageMatches = currentUserProfile?.canManageMatches() == true
                 
-                // 5. Update UI based on roles
-                upcomingMatchFormCard.visibility = if (canManageMatches) View.VISIBLE else View.GONE
+                upcomingMatchFormCard.visibility = View.VISIBLE
+                
+                // Match Details editing is for authorized users only
+                matchDetailsHeader.visibility = if (canManageMatches) View.VISIBLE else View.GONE
+                matchDetailsContent.visibility = View.GONE 
 
                 teamMemberAdapter = TeamMemberAdapter(isAdmin) { profile ->
                     val intent = Intent(this@TeamProfileActivity, com.magnum.cricketclub.ui.me.MeActivity::class.java)
@@ -281,17 +358,62 @@ class TeamProfileActivity : BaseActivity() {
                 }
                 teamMembersRecyclerView.adapter = teamMemberAdapter
                 
-                if (allProfiles.isEmpty()) {
+                if (allUserProfiles.isEmpty()) {
                     emptyStateTextView.visibility = View.VISIBLE
                     teamMembersRecyclerView.visibility = View.GONE
                 } else {
                     emptyStateTextView.visibility = View.GONE
                     teamMembersRecyclerView.visibility = View.VISIBLE
-                    teamMemberAdapter.submitList(allProfiles)
+                    teamMemberAdapter.submitList(allUserProfiles)
                 }
+
+                // Initialize PlayerAvailabilityAdapter
+                val namesMap = allUserProfiles.associate { it.email to (it.name ?: it.email) }
+                playerAvailabilityAdapter = PlayerAvailabilityAdapter(namesMap)
+                availabilityRecyclerView.adapter = playerAvailabilityAdapter
+                
+                // Load availability if the main section is expanded
+                if (upcomingMatchContent.visibility == View.VISIBLE && playerAvailabilityContent.visibility == View.VISIBLE) {
+                    loadPlayerAvailability()
+                }
+
             } catch (e: Exception) {
                 emptyStateTextView.visibility = View.VISIBLE
                 teamMembersRecyclerView.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun loadPlayerAvailability(checkedId: Int = availabilityFilterGroup.checkedButtonId) {
+        val matchDate = selectedMatchDateUtcMillis ?: return
+        
+        val availabilityFilter: Boolean? = when (checkedId) {
+            R.id.filterAvailable -> true
+            R.id.filterNotAvailable -> false
+            else -> null
+        }
+
+        lifecycleScope.launch {
+            try {
+                val availabilityList = firestoreRepository.downloadAllMatchAvailabilities(matchDate, availabilityFilter)
+                
+                if (availabilityList.isEmpty()) {
+                    emptyAvailabilityTextView.text = when (checkedId) {
+                        R.id.filterAvailable -> "No players available"
+                        R.id.filterNotAvailable -> "No players unavailable"
+                        else -> "No availability updates yet"
+                    }
+                    emptyAvailabilityTextView.visibility = View.VISIBLE
+                    availabilityRecyclerView.visibility = View.GONE
+                } else {
+                    emptyAvailabilityTextView.visibility = View.GONE
+                    availabilityRecyclerView.visibility = View.VISIBLE
+                    playerAvailabilityAdapter.submitList(availabilityList)
+                }
+            } catch (e: Exception) {
+                emptyAvailabilityTextView.visibility = View.VISIBLE
+                availabilityRecyclerView.visibility = View.GONE
+                Toast.makeText(this@TeamProfileActivity, "Failed to load availability", Toast.LENGTH_SHORT).show()
             }
         }
     }

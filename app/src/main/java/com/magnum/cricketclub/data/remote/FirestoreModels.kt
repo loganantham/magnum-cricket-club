@@ -58,3 +58,27 @@ data class FirestoreUserProfile(
     @PropertyName("teamId") val teamId: String = "",
     @PropertyName("lastModified") val lastModified: Long = System.currentTimeMillis()
 )
+
+data class FirestoreUpcomingMatch(
+    @PropertyName("dateUtcMillis") val dateUtcMillis: Long = 0,
+    @PropertyName("team1") val team1: String = "",
+    @PropertyName("team2") val team2: String = "",
+    @PropertyName("groundName") val groundName: String = "",
+    @PropertyName("groundLocation") val groundLocation: String = "",
+    @PropertyName("groundFees") val groundFees: Double = 0.0,
+    @PropertyName("ballProvided") val ballProvided: Boolean = false,
+    @PropertyName("noOfBalls") val noOfBalls: Int = 0,
+    @PropertyName("ballName") val ballName: String? = null,
+    @PropertyName("overs") val overs: Int = 20,
+    @PropertyName("teamId") val teamId: String = "",
+    @PropertyName("lastModified") val lastModified: Long = System.currentTimeMillis()
+)
+
+data class FirestoreMatchAvailability(
+    @PropertyName("userEmail") val userEmail: String = "",
+    @PropertyName("available") val available: Boolean = false,
+    @PropertyName("reason") val reason: String? = null,
+    @PropertyName("teamId") val teamId: String = "",
+    @PropertyName("matchDate") val matchDate: Long = 0,
+    @PropertyName("lastModified") val lastModified: Long = System.currentTimeMillis()
+)
