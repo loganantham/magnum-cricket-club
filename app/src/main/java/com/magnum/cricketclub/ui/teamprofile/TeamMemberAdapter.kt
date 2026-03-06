@@ -14,7 +14,8 @@ import com.magnum.cricketclub.data.UserProfile
 
 class TeamMemberAdapter(
     private val isAdmin: Boolean,
-    private val onEditClick: (UserProfile) -> Unit
+    private val onEditClick: (UserProfile) -> Unit,
+    private val onDeleteClick: (UserProfile) -> Unit
 ) : ListAdapter<UserProfile, TeamMemberAdapter.TeamMemberViewHolder>(DiffCallback()) {
 
     private var expandedPosition = -1
@@ -22,7 +23,7 @@ class TeamMemberAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TeamMemberViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_team_member, parent, false)
-        return TeamMemberViewHolder(view, isAdmin, onEditClick)
+        return TeamMemberViewHolder(view, isAdmin, onEditClick, onDeleteClick)
     }
 
     override fun onBindViewHolder(holder: TeamMemberViewHolder, position: Int) {
@@ -42,7 +43,8 @@ class TeamMemberAdapter(
     class TeamMemberViewHolder(
         itemView: View,
         private val isAdmin: Boolean,
-        private val onEditClick: (UserProfile) -> Unit
+        private val onEditClick: (UserProfile) -> Unit,
+        private val onDeleteClick: (UserProfile) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
         private val nameTextView: TextView = itemView.findViewById(R.id.nameTextView)
         private val emailTextView: TextView = itemView.findViewById(R.id.emailTextView)
@@ -52,6 +54,7 @@ class TeamMemberAdapter(
         private val alternateMobileLayout: LinearLayout = itemView.findViewById(R.id.alternateMobileLayout)
         private val responsibilityTextView: TextView = itemView.findViewById(R.id.responsibilityTextView)
         private val editPlayerButton: MaterialButton = itemView.findViewById(R.id.editPlayerButton)
+        private val deletePlayerButton: MaterialButton = itemView.findViewById(R.id.deletePlayerButton)
         private val detailsLayout: LinearLayout = itemView.findViewById(R.id.detailsLayout)
         private val cardView: com.google.android.material.card.MaterialCardView = itemView as com.google.android.material.card.MaterialCardView
 
@@ -74,14 +77,20 @@ class TeamMemberAdapter(
                 alternateMobileLayout.visibility = View.GONE
             }
             
-            // Show edit button only for authorized user
+            // Show action buttons only for authorized user
             if (isAdmin) {
                 editPlayerButton.visibility = View.VISIBLE
                 editPlayerButton.setOnClickListener {
                     onEditClick(profile)
                 }
+                
+                deletePlayerButton.visibility = View.VISIBLE
+                deletePlayerButton.setOnClickListener {
+                    onDeleteClick(profile)
+                }
             } else {
                 editPlayerButton.visibility = View.GONE
+                deletePlayerButton.visibility = View.GONE
             }
             
             // Toggle details visibility

@@ -83,6 +83,12 @@
             android:exported="false"
             android:parentActivityName=".ui.MainActivity" />
 
+        <activity
+            android:name=".ui.teamprofile.TeamLedgerActivity"
+            android:exported="false"
+            android:label="Team Ledger"
+            android:parentActivityName=".ui.MainActivity" />
+
     </application>
 
 </manifest>

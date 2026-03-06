@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/nameTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="User Name"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/pendingAmountTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="₹1000"
+        android:textColor="@android:color/holo_red_dark"
+        android:textStyle="bold"
+        android:layout_marginEnd="16dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/remindButton"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Remind"
+        android:textSize="12sp"
+        app:strokeColor="@color/primary_color"
+        app:icon="@drawable/ic_notifications"
+        android:minHeight="0dp"
+        android:minWidth="0dp"
+        android:padding="4dp" />
+
+</LinearLayout>

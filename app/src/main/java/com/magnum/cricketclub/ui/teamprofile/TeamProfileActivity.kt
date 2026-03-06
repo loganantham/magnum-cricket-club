@@ -14,6 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.datepicker.CalendarConstraints
@@ -21,13 +22,12 @@ import com.google.android.material.datepicker.DateValidatorPointForward
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.firebase.auth.FirebaseAuth
 import com.magnum.cricketclub.R
-import com.magnum.cricketclub.data.UpcomingMatch
-import com.magnum.cricketclub.data.UserProfile
-import com.magnum.cricketclub.data.UserProfileRepository
+import com.magnum.cricketclub.data.*
 import com.magnum.cricketclub.data.remote.FirestoreMatchAvailability
 import com.magnum.cricketclub.data.remote.FirestoreRepository
 import com.magnum.cricketclub.ui.BaseActivity
 import com.magnum.cricketclub.utils.UpcomingMatchStore
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -61,6 +61,7 @@ class TeamProfileActivity : BaseActivity() {
     private lateinit var teamMemberAdapter: TeamMemberAdapter
     private lateinit var userProfileRepository: UserProfileRepository
     private val firestoreRepository = FirestoreRepository()
+    private val configRepository by lazy { AppConfigRepository(AppDatabase.getDatabase(application).appConfigDao()) }
 
     private lateinit var matchDateContainer: LinearLayout
     private lateinit var matchDateValueTextView: TextView
@@ -75,6 +76,15 @@ class TeamProfileActivity : BaseActivity() {
     private lateinit var noOfBallsEditText: EditText
     private lateinit var ballNameSpinner: Spinner
     private lateinit var saveMatchButton: MaterialButton
+
+    // App Users section
+    private lateinit var appUsersCard: View
+    private lateinit var appUsersHeader: LinearLayout
+    private lateinit var appUsersContent: LinearLayout
+    private lateinit var appUsersChevron: ImageView
+    private lateinit var allowedDomainEditText: EditText
+    private lateinit var saveDomainButton: MaterialButton
+    private lateinit var btnAddUser: MaterialButton
 
     private var selectedMatchDateUtcMillis: Long? = null
     private var currentUserEmail: String = ""
@@ -129,6 +139,15 @@ class TeamProfileActivity : BaseActivity() {
         ballNameSpinner = findViewById(R.id.ballNameSpinner)
         saveMatchButton = findViewById(R.id.saveMatchButton)
 
+        // App Users section binding
+        appUsersCard = findViewById(R.id.appUsersCard)
+        appUsersHeader = findViewById(R.id.appUsersHeader)
+        appUsersContent = findViewById(R.id.appUsersContent)
+        appUsersChevron = findViewById(R.id.appUsersChevron)
+        allowedDomainEditText = findViewById(R.id.allowedDomainEditText)
+        saveDomainButton = findViewById(R.id.saveDomainButton)
+        btnAddUser = findViewById(R.id.btnAddUser)
+
         // Setup ball name spinner
         val ballNames = listOf("SF Yorker", "SF True Test")
         val ballAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ballNames)
@@ -144,6 +163,7 @@ class TeamProfileActivity : BaseActivity() {
         setExpanded(matchDetailsContent, matchDetailsChevron, expanded = false)
         setExpanded(playerAvailabilityContent, playerAvailabilityChevron, expanded = false)
         setExpanded(teamMembersContent, teamMembersChevron, expanded = false)
+        setExpanded(appUsersContent, appUsersChevron, expanded = false)
 
         upcomingMatchHeader.setOnClickListener {
             val expand = upcomingMatchContent.visibility != View.VISIBLE
@@ -166,6 +186,11 @@ class TeamProfileActivity : BaseActivity() {
             setExpanded(teamMembersContent, teamMembersChevron, expand)
         }
 
+        appUsersHeader.setOnClickListener {
+            val expand = appUsersContent.visibility != View.VISIBLE
+            setExpanded(appUsersContent, appUsersChevron, expand)
+        }
+
         availabilityFilterGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) {
                 loadPlayerAvailability(checkedId)
@@ -173,6 +198,7 @@ class TeamProfileActivity : BaseActivity() {
         }
 
         setupUpcomingMatchForm()
+        setupAppUsersSection()
         
         teamMembersRecyclerView.layoutManager = LinearLayoutManager(this)
         availabilityRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -185,6 +211,27 @@ class TeamProfileActivity : BaseActivity() {
     private fun setExpanded(content: View, chevron: ImageView, expanded: Boolean) {
         content.visibility = if (expanded) View.VISIBLE else View.GONE
         chevron.animate().rotation(if (expanded) 180f else 0f).setDuration(150).start()
+    }
+
+    private fun setupAppUsersSection() {
+        lifecycleScope.launch {
+            val domain = configRepository.getConfigValue("allowed_signup_domain") ?: ""
+            allowedDomainEditText.setText(domain)
+        }
+
+        saveDomainButton.setOnClickListener {
+            val domain = allowedDomainEditText.text.toString().trim().lowercase()
+            lifecycleScope.launch {
+                configRepository.setConfig("allowed_signup_domain", domain)
+                Toast.makeText(this@TeamProfileActivity, "Domain restriction updated", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnAddUser.setOnClickListener {
+            val intent = Intent(this, com.magnum.cricketclub.ui.auth.AuthActivity::class.java)
+            intent.putExtra("mode", "signup") // Use AuthActivity to add new user
+            startActivity(intent)
+        }
     }
 
     private fun setupUpcomingMatchForm() {
@@ -340,7 +387,7 @@ class TeamProfileActivity : BaseActivity() {
 
                 // 5. Identify current user's profile and roles using the LATEST data
                 currentUserProfile = allUserProfiles.find { it.email.equals(currentUserEmail, ignoreCase = true) }
-                    ?: userProfileRepository.getUserProfileSync(currentUserEmail)
+                    ?: userProfileRepository.getUserProfile(currentUserEmail).firstOrNull()
                 
                 val isAdmin = currentUserProfile?.isAdmin() == true
                 val canManageMatches = currentUserProfile?.canManageMatches() == true
@@ -351,11 +398,19 @@ class TeamProfileActivity : BaseActivity() {
                 matchDetailsHeader.visibility = if (canManageMatches) View.VISIBLE else View.GONE
                 matchDetailsContent.visibility = View.GONE 
 
-                teamMemberAdapter = TeamMemberAdapter(isAdmin) { profile ->
-                    val intent = Intent(this@TeamProfileActivity, com.magnum.cricketclub.ui.me.MeActivity::class.java)
-                    intent.putExtra("edit_user_email", profile.email)
-                    startActivity(intent)
-                }
+                // App Users section is for App Owner/Developer ONLY
+                appUsersCard.visibility = if (isAdmin) View.VISIBLE else View.GONE
+
+                teamMemberAdapter = TeamMemberAdapter(isAdmin, 
+                    onEditClick = { profile ->
+                        val intent = Intent(this@TeamProfileActivity, com.magnum.cricketclub.ui.me.MeActivity::class.java)
+                        intent.putExtra("edit_user_email", profile.email)
+                        startActivity(intent)
+                    },
+                    onDeleteClick = { profile ->
+                        showDeleteUserDialog(profile)
+                    }
+                )
                 teamMembersRecyclerView.adapter = teamMemberAdapter
                 
                 if (allUserProfiles.isEmpty()) {
@@ -382,6 +437,22 @@ class TeamProfileActivity : BaseActivity() {
                 teamMembersRecyclerView.visibility = View.GONE
             }
         }
+    }
+
+    private fun showDeleteUserDialog(profile: UserProfile) {
+        AlertDialog.Builder(this)
+            .setTitle("Delete User")
+            .setMessage("Are you sure you want to delete user ${profile.name ?: profile.email}? This will remove them from the club roster.")
+            .setPositiveButton("Delete") { _, _ ->
+                lifecycleScope.launch {
+                    userProfileRepository.delete(profile.email)
+                    // Note: In a real app, you'd also need to delete from Firebase Auth/Firestore
+                    loadData()
+                    Toast.makeText(this@TeamProfileActivity, "User deleted", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun loadPlayerAvailability(checkedId: Int = availabilityFilterGroup.checkedButtonId) {
@@ -419,7 +490,7 @@ class TeamProfileActivity : BaseActivity() {
     }
     
     override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
+        onBackPressedDispatcher.onBackPressed()
         return true
     }
 }

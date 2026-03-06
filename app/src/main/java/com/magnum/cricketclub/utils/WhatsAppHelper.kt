@@ -20,61 +20,24 @@ object WhatsAppHelper {
         return """
             Magnum Expense/Income Update 
 
-            $action: $type
+            ${action}: ${type}
             Category: ${categoryName ?: "Unknown"}
-            Amount: $sign₹${String.format("%.2f", expense.amount)}
+            Amount: ${sign}₹${String.format("%.2f", expense.amount)}
             ${if (expense.description.isNotEmpty()) "Description: ${expense.description}\n" else ""}
-            Date: $dateStr
+            Date: ${dateStr}
             By: ${expense.createdByEmail ?: "Unknown"}
             ${if (currentBalance != null) "\nUpdated Balance: ₹${String.format("%.2f", currentBalance)}" else ""}
         """.trimIndent()
     }
 
     fun shareExpenseViaWhatsApp(context: Context, expense: Expense, categoryName: String?, isNew: Boolean, currentBalance: Double?) {
-        try {
-            val message = getExpenseMessage(expense, categoryName, isNew, currentBalance)
-            
-            val intent = Intent(Intent.ACTION_SEND)
-            intent.type = "text/plain"
-            intent.setPackage("com.whatsapp")
-            intent.putExtra(Intent.EXTRA_TEXT, message)
-            
-            if (intent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(intent)
-            } else {
-                // Fallback: Try to open WhatsApp via URI
-                val uri = Uri.parse("https://wa.me/?text=${Uri.encode(message)}")
-                val fallbackIntent = Intent(Intent.ACTION_VIEW, uri)
-                context.startActivity(fallbackIntent)
-            }
-        } catch (e: Exception) {
-            Toast.makeText(context, "Failed to open WhatsApp: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
+        val message = getExpenseMessage(expense, categoryName, isNew, currentBalance)
+        shareToWhatsApp(context, message)
     }
 
     fun sendExpenseUpdateToGroup(context: Context, groupId: String, expense: Expense, categoryName: String?, isNew: Boolean, currentBalance: Double?) {
-        try {
-            val message = getExpenseMessage(expense, categoryName, isNew, currentBalance)
-            
-            // Try to open WhatsApp with group invite link format
-            val inviteLink = if (groupId.startsWith("http")) groupId else "https://chat.whatsapp.com/$groupId"
-            val uri = Uri.parse(inviteLink)
-            val intent = Intent(Intent.ACTION_VIEW, uri)
-            
-            val sendIntent = Intent(Intent.ACTION_SEND)
-            sendIntent.type = "text/plain"
-            sendIntent.setPackage("com.whatsapp")
-            sendIntent.putExtra(Intent.EXTRA_TEXT, message)
-            
-            // First open the group, then user can paste/send.
-            context.startActivity(intent)
-            
-            Toast.makeText(context, "Opening WhatsApp. Please select the group to post update.", Toast.LENGTH_LONG).show()
-            context.startActivity(Intent.createChooser(sendIntent, "Post to WhatsApp Group"))
-            
-        } catch (e: Exception) {
-            Toast.makeText(context, "Failed to open WhatsApp: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
+        val message = getExpenseMessage(expense, categoryName, isNew, currentBalance)
+        shareToWhatsApp(context, message, groupId)
     }
 
     fun sendContributionReminder(
@@ -92,40 +55,23 @@ object WhatsAppHelper {
             val messageStatus = status.ifBlank { context.getString(com.magnum.cricketclub.R.string.status_pending) }
 
             val message = """
-                $messageTitle
+                ${messageTitle}
 
-                Hi $greetingName,
+                Hi ${greetingName},
 
-                This is a gentle reminder for your team contribution for $monthName $year.
+                This is a gentle reminder for your team contribution for ${monthName} ${year}.
 
                 Amount: ₹${String.format("%.2f", amount)}
-                Status: $messageStatus
+                Status: ${messageStatus}
 
                 Please complete the payment and update the status once done.
 
                 Thank you for supporting Magnum Cricket Club! 🏏
             """.trimIndent()
 
-            val cleanNumber = phoneNumber.trim()
-            if (cleanNumber.isEmpty()) {
-                Toast.makeText(
-                    context,
-                    context.getString(com.magnum.cricketclub.R.string.no_mobile_for_contributor),
-                    Toast.LENGTH_SHORT
-                ).show()
-                return
-            }
-
-            val uri = Uri.parse("https://wa.me/$cleanNumber?text=${Uri.encode(message)}")
-            val intent = Intent(Intent.ACTION_VIEW, uri)
-
-            context.startActivity(intent)
+            sendCustomMessage(context, phoneNumber, message)
         } catch (e: Exception) {
-            Toast.makeText(
-                context,
-                context.getString(com.magnum.cricketclub.R.string.failed_to_open_whatsapp, e.message ?: ""),
-                Toast.LENGTH_SHORT
-            ).show()
+            Toast.makeText(context, "Failed to send reminder: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -133,14 +79,65 @@ object WhatsAppHelper {
         try {
             val cleanNumber = phoneNumber.trim()
             if (cleanNumber.isEmpty()) {
-                Toast.makeText(context, "No phone number available", Toast.LENGTH_SHORT).show()
+                shareToWhatsApp(context, message)
                 return
             }
-            val uri = Uri.parse("https://wa.me/$cleanNumber?text=${Uri.encode(message)}")
+            
+            // Standard WhatsApp direct message URL
+            val uri = Uri.parse("https://wa.me/${cleanNumber}?text=${Uri.encode(message)}")
             val intent = Intent(Intent.ACTION_VIEW, uri)
-            context.startActivity(intent)
+            intent.setPackage("com.whatsapp")
+            
+            try {
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                // Try without setPackage (might open in browser or other app)
+                val fallbackIntent = Intent(Intent.ACTION_VIEW, uri)
+                context.startActivity(fallbackIntent)
+            }
         } catch (e: Exception) {
             Toast.makeText(context, "Failed to open WhatsApp: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun shareToWhatsApp(context: Context, message: String, groupId: String? = null) {
+        try {
+            // If group ID is present, try to open the group first (to help user find it)
+            if (!groupId.isNullOrBlank()) {
+                try {
+                    val inviteLink = if (groupId.startsWith("http")) groupId else "https://chat.whatsapp.com/${groupId}"
+                    val groupIntent = Intent(Intent.ACTION_VIEW, Uri.parse(inviteLink))
+                    groupIntent.setPackage("com.whatsapp")
+                    context.startActivity(groupIntent)
+                    Toast.makeText(context, "Opening Group. Please select WhatsApp to send the message next.", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    // Ignore group open failure and proceed to share
+                }
+            }
+            
+            // Prepare the share intent targeting WhatsApp's "Send to..." screen
+            val sendIntent = Intent(Intent.ACTION_SEND)
+            sendIntent.type = "text/plain"
+            sendIntent.putExtra(Intent.EXTRA_TEXT, message)
+            sendIntent.setPackage("com.whatsapp")
+            
+            try {
+                context.startActivity(sendIntent)
+            } catch (ex: android.content.ActivityNotFoundException) {
+                // Try WhatsApp Business package if standard is not found
+                try {
+                    sendIntent.setPackage("com.whatsapp.w4b")
+                    context.startActivity(sendIntent)
+                } catch (ex2: android.content.ActivityNotFoundException) {
+                    // Final fallback: Use generic chooser
+                    val shareIntent = Intent(Intent.ACTION_SEND)
+                    shareIntent.type = "text/plain"
+                    shareIntent.putExtra(Intent.EXTRA_TEXT, message)
+                    context.startActivity(Intent.createChooser(shareIntent, "Share via"))
+                }
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Failed to share to WhatsApp: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 }
