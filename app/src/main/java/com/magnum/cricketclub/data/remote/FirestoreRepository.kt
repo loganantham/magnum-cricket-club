@@ -4,6 +4,7 @@ import com.magnum.cricketclub.data.Expense
 import com.magnum.cricketclub.data.ExpenseType
 import com.magnum.cricketclub.data.IncomeType
 import com.magnum.cricketclub.data.UpcomingMatch
+import com.magnum.cricketclub.data.UserProfile
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.tasks.await
 
@@ -181,9 +182,9 @@ class FirestoreRepository {
     }
 
     // User Profiles
-    suspend fun uploadUserProfile(userProfile: com.magnum.cricketclub.data.UserProfile) {
+    suspend fun uploadUserProfile(userProfile: UserProfile) {
         if (!isFirebaseAvailable()) return
-        val userId = getCurrentUserId() ?: return
+        val userId = getCurrentUserId() ?: ""
         val teamId = getCurrentTeamId()
 
         val firestoreProfile = FirestoreUserProfile(
@@ -204,7 +205,7 @@ class FirestoreRepository {
             .await()
     }
 
-    suspend fun downloadAllUserProfiles(): List<com.magnum.cricketclub.data.UserProfile> {
+    suspend fun downloadAllUserProfiles(): List<UserProfile> {
         if (!isFirebaseAvailable()) return emptyList()
         val teamId = getCurrentTeamId()
 
@@ -236,7 +237,7 @@ class FirestoreRepository {
 
         return snapshot.documents.mapNotNull { doc ->
             val data = doc.toObject(FirestoreUserProfile::class.java) ?: return@mapNotNull null
-            com.magnum.cricketclub.data.UserProfile(
+            UserProfile(
                 email = data.email,
                 name = data.name,
                 playerPreference = data.playerPreference,
@@ -245,6 +246,14 @@ class FirestoreRepository {
                 additionalResponsibility = data.additionalResponsibility
             )
         }
+    }
+
+    suspend fun deleteUserProfile(email: String) {
+        if (!isFirebaseAvailable()) return
+        firestore!!.collection("userProfiles")
+            .document(email)
+            .delete()
+            .await()
     }
 
     // Upcoming Match

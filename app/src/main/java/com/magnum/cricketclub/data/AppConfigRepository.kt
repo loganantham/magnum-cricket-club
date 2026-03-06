@@ -12,5 +12,6 @@ class AppConfigRepository(private val appConfigDao: AppConfigDao) {
         const val KEY_WHATSAPP_GROUP_ID = "whatsapp_group_id"
         const val KEY_WHATSAPP_ENABLED = "whatsapp_enabled"
         const val KEY_TEAM_NAME = "team_name"
+        const val KEY_ALLOWED_SIGNUP_DOMAIN = "allowed_signup_domain"
     }
 }

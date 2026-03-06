@@ -22,6 +22,10 @@ class ConfigViewModel(application: Application) : AndroidViewModel(application) 
     suspend fun getTeamName(): String? {
         return configRepository.getConfigValue(AppConfigRepository.KEY_TEAM_NAME)
     }
+
+    suspend fun getAllowedSignupDomain(): String? {
+        return configRepository.getConfigValue(AppConfigRepository.KEY_ALLOWED_SIGNUP_DOMAIN)
+    }
     
     fun setWhatsAppGroupId(groupId: String) {
         viewModelScope.launch {
@@ -38,6 +42,12 @@ class ConfigViewModel(application: Application) : AndroidViewModel(application) 
     fun setTeamName(teamName: String) {
         viewModelScope.launch {
             configRepository.setConfig(AppConfigRepository.KEY_TEAM_NAME, teamName)
+        }
+    }
+
+    fun setAllowedSignupDomain(domain: String) {
+        viewModelScope.launch {
+            configRepository.setConfig(AppConfigRepository.KEY_ALLOWED_SIGNUP_DOMAIN, domain)
         }
     }
 }

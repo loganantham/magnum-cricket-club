@@ -2,8 +2,10 @@ package com.magnum.cricketclub.ui.teamprofile
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -20,10 +22,10 @@ import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.DateValidatorPointForward
 import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.magnum.cricketclub.R
 import com.magnum.cricketclub.data.*
-import com.magnum.cricketclub.data.remote.FirestoreMatchAvailability
 import com.magnum.cricketclub.data.remote.FirestoreRepository
 import com.magnum.cricketclub.ui.BaseActivity
 import com.magnum.cricketclub.utils.UpcomingMatchStore
@@ -82,9 +84,9 @@ class TeamProfileActivity : BaseActivity() {
     private lateinit var appUsersHeader: LinearLayout
     private lateinit var appUsersContent: LinearLayout
     private lateinit var appUsersChevron: ImageView
-    private lateinit var allowedDomainEditText: EditText
-    private lateinit var saveDomainButton: MaterialButton
     private lateinit var btnAddUser: MaterialButton
+    private lateinit var appUsersRecyclerView: RecyclerView
+    private lateinit var appUsersAdapter: TeamMemberAdapter
 
     private var selectedMatchDateUtcMillis: Long? = null
     private var currentUserEmail: String = ""
@@ -144,9 +146,8 @@ class TeamProfileActivity : BaseActivity() {
         appUsersHeader = findViewById(R.id.appUsersHeader)
         appUsersContent = findViewById(R.id.appUsersContent)
         appUsersChevron = findViewById(R.id.appUsersChevron)
-        allowedDomainEditText = findViewById(R.id.allowedDomainEditText)
-        saveDomainButton = findViewById(R.id.saveDomainButton)
         btnAddUser = findViewById(R.id.btnAddUser)
+        appUsersRecyclerView = findViewById(R.id.appUsersRecyclerView)
 
         // Setup ball name spinner
         val ballNames = listOf("SF Yorker", "SF True Test")
@@ -201,6 +202,7 @@ class TeamProfileActivity : BaseActivity() {
         setupAppUsersSection()
         
         teamMembersRecyclerView.layoutManager = LinearLayoutManager(this)
+        appUsersRecyclerView.layoutManager = LinearLayoutManager(this)
         availabilityRecyclerView.layoutManager = LinearLayoutManager(this)
         
         loadData()
@@ -214,24 +216,112 @@ class TeamProfileActivity : BaseActivity() {
     }
 
     private fun setupAppUsersSection() {
-        lifecycleScope.launch {
-            val domain = configRepository.getConfigValue("allowed_signup_domain") ?: ""
-            allowedDomainEditText.setText(domain)
-        }
-
-        saveDomainButton.setOnClickListener {
-            val domain = allowedDomainEditText.text.toString().trim().lowercase()
-            lifecycleScope.launch {
-                configRepository.setConfig("allowed_signup_domain", domain)
-                Toast.makeText(this@TeamProfileActivity, "Domain restriction updated", Toast.LENGTH_SHORT).show()
-            }
-        }
-
         btnAddUser.setOnClickListener {
-            val intent = Intent(this, com.magnum.cricketclub.ui.auth.AuthActivity::class.java)
-            intent.putExtra("mode", "signup") // Use AuthActivity to add new user
-            startActivity(intent)
+            showEditUserDialog(null) // Show empty dialog for new user
         }
+    }
+
+    private fun showEditUserDialog(profile: UserProfile?) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_user, null)
+        val nameEditText = dialogView.findViewById<TextInputEditText>(R.id.nameEditText)
+        val emailEditText = dialogView.findViewById<TextInputEditText>(R.id.emailEditText)
+        val mobileEditText = dialogView.findViewById<TextInputEditText>(R.id.mobileEditText)
+        val alternateMobileEditText = dialogView.findViewById<TextInputEditText>(R.id.alternateMobileEditText)
+        val preferenceSpinner = dialogView.findViewById<Spinner>(R.id.preferenceSpinner)
+        val dialogTitle = dialogView.findViewById<TextView>(R.id.dialogTitle)
+
+        // Responsibilities Checkboxes
+        val cbAppOwner = dialogView.findViewById<CheckBox>(R.id.cbAppOwner)
+        val cbAppDeveloper = dialogView.findViewById<CheckBox>(R.id.cbAppDeveloper)
+        val cbManager = dialogView.findViewById<CheckBox>(R.id.cbManager)
+        val cbSecretary = dialogView.findViewById<CheckBox>(R.id.cbSecretary)
+        val cbCaptain = dialogView.findViewById<CheckBox>(R.id.cbCaptain)
+        val cbViceCaptain = dialogView.findViewById<CheckBox>(R.id.cbViceCaptain)
+        val cbPlayer = dialogView.findViewById<CheckBox>(R.id.cbPlayer)
+        val cbFinanceMaintenance = dialogView.findViewById<CheckBox>(R.id.cbFinanceMaintenance)
+        val cbFinanceContributor = dialogView.findViewById<CheckBox>(R.id.cbFinanceContributor)
+
+        val checkboxMap = mapOf(
+            "App Owner" to cbAppOwner,
+            "App Developer" to cbAppDeveloper,
+            "Manager" to cbManager,
+            "Secretary" to cbSecretary,
+            "Captain" to cbCaptain,
+            "Vice Captain" to cbViceCaptain,
+            "Player" to cbPlayer,
+            "Finance Maintenance" to cbFinanceMaintenance,
+            "Finance Contributor" to cbFinanceContributor
+        )
+
+        // Setup preference spinner
+        val preferences = listOf("Batsman", "Bowler", "All Rounder", "Wicket Keeper")
+        val prefAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, preferences)
+        prefAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        preferenceSpinner.adapter = prefAdapter
+
+        if (profile != null) {
+            dialogTitle.text = "Edit User"
+            nameEditText.setText(profile.name)
+            emailEditText.setText(profile.email)
+            emailEditText.isEnabled = false // Email is primary key
+            mobileEditText.setText(profile.mobileNumber)
+            alternateMobileEditText.setText(profile.alternateMobileNumber)
+            
+            val prefIndex = preferences.indexOf(profile.playerPreference)
+            if (prefIndex >= 0) preferenceSpinner.setSelection(prefIndex)
+
+            // Set Checkboxes
+            val currentResponsibilities = profile.additionalResponsibility?.split(",")?.map { it.trim() } ?: emptyList()
+            checkboxMap.forEach { (name, cb) ->
+                cb.isChecked = currentResponsibilities.contains(name)
+            }
+        } else {
+            dialogTitle.text = "Add New User"
+            cbPlayer.isChecked = true // Default for new user
+        }
+
+        AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                val name = nameEditText.text.toString().trim()
+                val email = emailEditText.text.toString().trim()
+                val mobile = mobileEditText.text.toString().trim()
+                val alternateMobile = alternateMobileEditText.text.toString().trim()
+                val preference = preferenceSpinner.selectedItem.toString()
+
+                // Collect Responsibilities
+                val selectedResponsibilities = checkboxMap.filter { it.value.isChecked }.keys.joinToString(", ")
+
+                if (email.isEmpty()) {
+                    Toast.makeText(this, "Email is required", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                val newProfile = UserProfile(
+                    email = email,
+                    name = name,
+                    playerPreference = preference,
+                    mobileNumber = mobile,
+                    alternateMobileNumber = alternateMobile,
+                    additionalResponsibility = selectedResponsibilities
+                )
+
+                lifecycleScope.launch {
+                    try {
+                        // Save to Firestore
+                        firestoreRepository.uploadUserProfile(newProfile)
+                        // Save to local DB
+                        userProfileRepository.insertOrUpdate(newProfile)
+                        
+                        loadData() // Refresh lists
+                        Toast.makeText(this@TeamProfileActivity, "User saved successfully", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(this@TeamProfileActivity, "Error saving user: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun setupUpcomingMatchForm() {
@@ -401,17 +491,26 @@ class TeamProfileActivity : BaseActivity() {
                 // App Users section is for App Owner/Developer ONLY
                 appUsersCard.visibility = if (isAdmin) View.VISIBLE else View.GONE
 
+                // Setup Adapters
                 teamMemberAdapter = TeamMemberAdapter(isAdmin, 
                     onEditClick = { profile ->
-                        val intent = Intent(this@TeamProfileActivity, com.magnum.cricketclub.ui.me.MeActivity::class.java)
-                        intent.putExtra("edit_user_email", profile.email)
-                        startActivity(intent)
+                        showEditUserDialog(profile)
                     },
                     onDeleteClick = { profile ->
                         showDeleteUserDialog(profile)
                     }
                 )
                 teamMembersRecyclerView.adapter = teamMemberAdapter
+
+                appUsersAdapter = TeamMemberAdapter(isAdmin,
+                    onEditClick = { profile ->
+                        showEditUserDialog(profile)
+                    },
+                    onDeleteClick = { profile ->
+                        showDeleteUserDialog(profile)
+                    }
+                )
+                appUsersRecyclerView.adapter = appUsersAdapter
                 
                 if (allUserProfiles.isEmpty()) {
                     emptyStateTextView.visibility = View.VISIBLE
@@ -420,6 +519,7 @@ class TeamProfileActivity : BaseActivity() {
                     emptyStateTextView.visibility = View.GONE
                     teamMembersRecyclerView.visibility = View.VISIBLE
                     teamMemberAdapter.submitList(allUserProfiles)
+                    appUsersAdapter.submitList(allUserProfiles)
                 }
 
                 // Initialize PlayerAvailabilityAdapter
@@ -445,10 +545,17 @@ class TeamProfileActivity : BaseActivity() {
             .setMessage("Are you sure you want to delete user ${profile.name ?: profile.email}? This will remove them from the club roster.")
             .setPositiveButton("Delete") { _, _ ->
                 lifecycleScope.launch {
-                    userProfileRepository.delete(profile.email)
-                    // Note: In a real app, you'd also need to delete from Firebase Auth/Firestore
-                    loadData()
-                    Toast.makeText(this@TeamProfileActivity, "User deleted", Toast.LENGTH_SHORT).show()
+                    try {
+                        // Delete from Firestore
+                        firestoreRepository.deleteUserProfile(profile.email)
+                        // Delete from local DB
+                        userProfileRepository.delete(profile.email)
+                        
+                        loadData()
+                        Toast.makeText(this@TeamProfileActivity, "User deleted", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(this@TeamProfileActivity, "Error deleting user: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -487,10 +594,5 @@ class TeamProfileActivity : BaseActivity() {
                 Toast.makeText(this@TeamProfileActivity, "Failed to load availability", Toast.LENGTH_SHORT).show()
             }
         }
-    }
-    
-    override fun onSupportNavigateUp(): Boolean {
-        onBackPressedDispatcher.onBackPressed()
-        return true
     }
 }

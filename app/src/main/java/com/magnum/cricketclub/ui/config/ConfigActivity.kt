@@ -18,6 +18,7 @@ class ConfigActivity : AppCompatActivity() {
     private lateinit var whatsappGroupIdEditText: TextInputEditText
     private lateinit var whatsappEnabledSwitch: SwitchMaterial
     private lateinit var teamNameEditText: TextInputEditText
+    private lateinit var allowedDomainEditText: TextInputEditText
     private lateinit var saveButton: MaterialButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,6 +35,7 @@ class ConfigActivity : AppCompatActivity() {
         whatsappGroupIdEditText = findViewById(R.id.whatsappGroupIdEditText)
         whatsappEnabledSwitch = findViewById(R.id.whatsappEnabledSwitch)
         teamNameEditText = findViewById(R.id.teamNameEditText)
+        allowedDomainEditText = findViewById(R.id.allowedDomainEditText)
         saveButton = findViewById(R.id.saveConfigButton)
 
         // Load current settings
@@ -41,10 +43,12 @@ class ConfigActivity : AppCompatActivity() {
             val groupId = viewModel.getWhatsAppGroupId()
             val enabled = viewModel.isWhatsAppEnabled()
             val teamName = viewModel.getTeamName()
+            val allowedDomain = viewModel.getAllowedSignupDomain()
 
             groupId?.let { whatsappGroupIdEditText.setText(it) }
             whatsappEnabledSwitch.isChecked = enabled
             teamName?.let { teamNameEditText.setText(it) }
+            allowedDomain?.let { allowedDomainEditText.setText(it) }
         }
 
         saveButton.setOnClickListener {
@@ -61,6 +65,7 @@ class ConfigActivity : AppCompatActivity() {
         val groupId = whatsappGroupIdEditText.text.toString().trim()
         val enabled = whatsappEnabledSwitch.isChecked
         val teamName = teamNameEditText.text.toString().trim()
+        val allowedDomain = allowedDomainEditText.text.toString().trim().lowercase()
 
         // Validate team name if provided
         if (teamName.isNotEmpty() && teamName.length < 2) {
@@ -76,6 +81,7 @@ class ConfigActivity : AppCompatActivity() {
             viewModel.setWhatsAppGroupId(groupId)
             viewModel.setWhatsAppEnabled(enabled)
             viewModel.setTeamName(teamName)
+            viewModel.setAllowedSignupDomain(allowedDomain)
             
             // Show success overlay
             val rootView = window.decorView.findViewById<ViewGroup>(android.R.id.content)

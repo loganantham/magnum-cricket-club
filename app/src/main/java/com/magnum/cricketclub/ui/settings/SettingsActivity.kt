@@ -8,9 +8,13 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.magnum.cricketclub.R
+import com.magnum.cricketclub.data.AppConfigRepository
+import com.magnum.cricketclub.data.AppDatabase
+import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
     
@@ -21,8 +25,12 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var teamNameEditText: EditText
     private lateinit var teamHintTextView: TextView
     private lateinit var teamSpacer: android.view.View
+    private lateinit var allowedDomainEditText: EditText
+    private lateinit var domainHintTextView: TextView
+    private lateinit var domainSpacer: android.view.View
     private lateinit var saveButton: MaterialButton
     private lateinit var sharedPreferences: SharedPreferences
+    private val configRepository by lazy { AppConfigRepository(AppDatabase.getDatabase(application).appConfigDao()) }
     
     companion object {
         private const val PREF_WHATSAPP_GROUP_ID = "whatsapp_group_id"
@@ -53,6 +61,9 @@ class SettingsActivity : AppCompatActivity() {
         teamNameEditText = findViewById(R.id.teamNameEditText)
         teamHintTextView = findViewById(R.id.teamHintTextView)
         teamSpacer = findViewById(R.id.teamSpacer)
+        allowedDomainEditText = findViewById(R.id.allowedDomainEditText)
+        domainHintTextView = findViewById(R.id.domainHintTextView)
+        domainSpacer = findViewById(R.id.domainSpacer)
         saveButton = findViewById(R.id.saveButton)
         
         setupTextWatchers()
@@ -84,6 +95,19 @@ class SettingsActivity : AppCompatActivity() {
                 updateTeamFieldVisibility(teamNameEditText.hasFocus())
             }
         })
+
+        // Domain field focus and text change listeners
+        allowedDomainEditText.setOnFocusChangeListener { _, hasFocus ->
+            updateDomainFieldVisibility(hasFocus)
+        }
+        
+        allowedDomainEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                updateDomainFieldVisibility(allowedDomainEditText.hasFocus())
+            }
+        })
     }
     
     private fun updateWhatsAppFieldVisibility(hasFocus: Boolean) {
@@ -111,6 +135,19 @@ class SettingsActivity : AppCompatActivity() {
             teamNameEditText.visibility = android.view.View.GONE
         }
     }
+
+    private fun updateDomainFieldVisibility(hasFocus: Boolean) {
+        val isEmpty = allowedDomainEditText.text.isNullOrBlank()
+        if (hasFocus || !isEmpty) {
+            domainHintTextView.visibility = TextView.GONE
+            domainSpacer.visibility = android.view.View.GONE
+            allowedDomainEditText.visibility = android.view.View.VISIBLE
+        } else {
+            domainHintTextView.visibility = TextView.VISIBLE
+            domainSpacer.visibility = android.view.View.VISIBLE
+            allowedDomainEditText.visibility = android.view.View.GONE
+        }
+    }
     
     private fun loadSettings() {
         // Load WhatsApp Group ID
@@ -130,6 +167,15 @@ class SettingsActivity : AppCompatActivity() {
             teamNameEditText.setText(teamName)
         }
         updateTeamFieldVisibility(teamNameEditText.hasFocus())
+
+        // Load Domain Restriction from ConfigRepository
+        lifecycleScope.launch {
+            val domain = configRepository.getConfigValue(AppConfigRepository.KEY_ALLOWED_SIGNUP_DOMAIN) ?: ""
+            if (domain.isNotEmpty()) {
+                allowedDomainEditText.setText(domain)
+            }
+            updateDomainFieldVisibility(allowedDomainEditText.hasFocus())
+        }
     }
     
     private fun setupSaveButton() {
@@ -153,8 +199,13 @@ class SettingsActivity : AppCompatActivity() {
         editor.putString(PREF_TEAM_NAME, teamName)
         
         editor.apply()
-        
-        Toast.makeText(this, "Settings saved successfully", Toast.LENGTH_SHORT).show()
+
+        // Save Domain Restriction to ConfigRepository
+        val domain = allowedDomainEditText.text?.toString()?.trim()?.lowercase() ?: ""
+        lifecycleScope.launch {
+            configRepository.setConfig(AppConfigRepository.KEY_ALLOWED_SIGNUP_DOMAIN, domain)
+            Toast.makeText(this@SettingsActivity, "Settings saved successfully", Toast.LENGTH_SHORT).show()
+        }
     }
     
     override fun onSupportNavigateUp(): Boolean {

@@ -268,6 +268,110 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- App Restrictions Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/card_background"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="App Restrictions"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="16dp" />
+
+                    <!-- Domain Restriction Input -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:background="@drawable/input_field_background"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:minHeight="64dp"
+                        android:gravity="top|start">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_share"
+                            android:tint="#757575"
+                            android:layout_marginEnd="12dp"
+                            android:layout_gravity="top|start"
+                            android:layout_marginTop="0dp" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="start|top"
+                            android:baselineAligned="false">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Allowed Signup Domain"
+                                android:textSize="14sp"
+                                android:textColor="#424242"
+                                android:textStyle="normal" />
+
+                            <Space
+                                android:id="@+id/domainSpacer"
+                                android:layout_width="match_parent"
+                                android:layout_height="28dp" />
+
+                            <TextView
+                                android:id="@+id/domainHintTextView"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="e.g. magnum.cricket.club"
+                                android:textSize="14sp"
+                                android:textColor="#9E9E9E" />
+
+                            <EditText
+                                android:id="@+id/allowedDomainEditText"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri"
+                                android:background="@android:color/transparent"
+                                android:textColor="#212121"
+                                android:textSize="14sp"
+                                android:paddingTop="0dp"
+                                android:paddingBottom="0dp"
+                                android:paddingStart="0dp"
+                                android:paddingEnd="0dp"
+                                android:minHeight="0dp"
+                                android:singleLine="true"
+                                android:includeFontPadding="false"
+                                android:lines="1"
+                                android:maxLines="1"
+                                android:hint=""
+                                android:visibility="gone" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
