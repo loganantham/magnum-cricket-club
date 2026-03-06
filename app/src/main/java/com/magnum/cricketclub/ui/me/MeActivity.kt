@@ -10,7 +10,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import com.magnum.cricketclub.ui.BaseActivity
 import android.graphics.Color
-import android.graphics.Typeface
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
@@ -20,7 +19,6 @@ import com.magnum.cricketclub.data.UserProfile
 import com.magnum.cricketclub.data.UserProfileRepository
 import com.magnum.cricketclub.data.remote.FirestoreRepository
 import com.magnum.cricketclub.ui.auth.AuthActivity
-import com.magnum.cricketclub.ui.settings.SettingsActivity
 import com.magnum.cricketclub.utils.SuccessOverlay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -47,6 +45,7 @@ class MeActivity : BaseActivity() {
     private lateinit var mobileNumberEditText: TextInputEditText
     private lateinit var alternateMobileNumberEditText: TextInputEditText
     private lateinit var saveButton: MaterialButton
+    private lateinit var logoutButton: MaterialButton
     
     private var selectedRole: String? = null
     private var selectedResponsibilities: MutableSet<String> = mutableSetOf()
@@ -115,13 +114,15 @@ class MeActivity : BaseActivity() {
         mobileNumberEditText = findViewById(R.id.mobileNumberEditText)
         alternateMobileNumberEditText = findViewById(R.id.alternateMobileNumberEditText)
         saveButton = findViewById(R.id.saveButton)
+        logoutButton = findViewById(R.id.logoutButton)
         
         emailEditText.setText(editUserEmail ?: currentEmail)
 
-        // Hide password change if editing another user
+        // Hide password change and logout if editing another user
         if (editUserEmail != null) {
             val pwdContainer = newPasswordEditText.parent?.parent as? ViewGroup
             pwdContainer?.visibility = View.GONE
+            logoutButton.visibility = View.GONE
         }
     }
 
@@ -237,6 +238,30 @@ class MeActivity : BaseActivity() {
         changePasswordButton.setOnClickListener { changePassword() }
         
         saveButton.setOnClickListener { saveProfile() }
+
+        logoutButton.setOnClickListener {
+            showLogoutConfirmationDialog()
+        }
+    }
+
+    private fun showLogoutConfirmationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Log Out")
+            .setMessage("Are you sure you want to log out?")
+            .setPositiveButton("Log Out") { _, _ ->
+                performLogout()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun performLogout() {
+        auth?.signOut()
+        Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show()
+        val intent = Intent(this, AuthActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
     
     private fun selectRole(role: String) {

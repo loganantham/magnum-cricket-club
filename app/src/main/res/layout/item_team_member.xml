@@ -181,17 +181,36 @@
 
             </LinearLayout>
 
-            <!-- Edit Button (Only visible for loganantham.c@magnum.cricket.club) -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/editPlayerButton"
+            <!-- Action Buttons -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Edit Player Details"
-                android:textSize="12sp"
-                android:visibility="gone"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                app:icon="@android:drawable/ic_menu_edit" />
+                android:orientation="horizontal"
+                android:gravity="end">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/deletePlayerButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Delete"
+                    android:textSize="12sp"
+                    android:textColor="@android:color/holo_red_dark"
+                    android:visibility="gone"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    app:icon="@android:drawable/ic_menu_delete"
+                    app:iconTint="@android:color/holo_red_dark" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/editPlayerButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Edit"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    app:icon="@android:drawable/ic_menu_edit" />
+
+            </LinearLayout>
 
         </LinearLayout>
 

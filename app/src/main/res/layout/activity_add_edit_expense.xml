@@ -145,6 +145,60 @@
 
         </LinearLayout>
 
+        <!-- Date field -->
+        <LinearLayout
+            android:id="@+id/dateLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@drawable/input_field_background"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:minHeight="64dp"
+            android:gravity="top|start"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginBottom="16dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_my_calendar"
+                android:tint="#757575"
+                android:layout_marginEnd="12dp"
+                android:layout_gravity="top|start" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="start|top">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/date"
+                    android:textSize="14sp"
+                    android:textColor="#424242" />
+
+                <TextView
+                    android:id="@+id/dateTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/select_date"
+                    android:textSize="14sp"
+                    android:textColor="#212121"
+                    android:layout_marginTop="4dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
         <!-- Amount field - Settings style -->
         <LinearLayout
             android:id="@+id/amountLayout"
@@ -294,6 +348,16 @@
             </LinearLayout>
 
         </LinearLayout>
+
+        <CheckBox
+            android:id="@+id/shareWhatsAppCheckBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/share_via_whatsapp"
+            android:textSize="14sp"
+            android:textColor="#424242"
+            android:layout_marginBottom="16dp"
+            android:checked="true" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/saveButton"

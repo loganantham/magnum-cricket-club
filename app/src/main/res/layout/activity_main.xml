@@ -9,14 +9,14 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/Theme.MagnumExpenses.AppBarOverlay">
+        android:theme="@style/Theme.MagnumCricketClub.AppBarOverlay">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            app:popupTheme="@style/Theme.MagnumExpenses.PopupOverlay" />
+            app:popupTheme="@style/Theme.MagnumCricketClub.PopupOverlay" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -472,47 +472,12 @@
                         android:orientation="vertical"
                         android:visibility="gone">
 
-                        <!-- Year Filter -->
-                        <LinearLayout
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnOpenTeamLedger"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginBottom="12dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/filter_year"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
-
-                            <Spinner
-                                android:id="@+id/yearFilterSpinner"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
-                                android:spinnerMode="dropdown" />
-
-                        </LinearLayout>
-
-                        <TextView
-                            android:id="@+id/teamContributionEmptyStateTextView"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/no_finance_contributors"
-                            android:textSize="16sp"
-                            android:textColor="@android:color/darker_gray"
-                            android:visibility="gone"
-                            android:layout_gravity="center_horizontal"
-                            android:layout_marginTop="8dp"
-                            android:layout_marginBottom="8dp" />
-
-                        <LinearLayout
-                            android:id="@+id/contributionTablesContainer"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical" />
+                            android:text="Open Team Ledger"
+                            app:icon="@drawable/ic_group" />
 
                     </LinearLayout>
 
@@ -529,6 +494,25 @@
 
             <TextView
                 android:id="@+id/emptyStateTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/teamContributionEmptyStateTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/contributionTablesContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
+            <Spinner
+                android:id="@+id/yearFilterSpinner"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:visibility="gone" />

@@ -14,6 +14,7 @@
     <string name="expense_type">Expense Type</string>
     <string name="income_type">Income Type</string>
     <string name="date">Date</string>
+    <string name="select_date">Select date</string>
     <string name="type">Type</string>
     <string name="income">Income</string>
     <string name="expense">Expense</string>
@@ -103,4 +104,5 @@
     <string name="filter_month">Month</string>
     <string name="export_pdf">Export PDF</string>
     <string name="reports">Reports</string>
+    <string name="share_via_whatsapp">Do you want to share the above expense details via whatsapp?</string>
 </resources>
