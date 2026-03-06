@@ -99,7 +99,7 @@ class HomeActivity : BaseActivity() {
                 return@setOnClickListener
             }
             
-            saveAvailability(isAvailable, reason)
+            showNoConfirmationDialog(reason)
         }
         
         setupBottomNavigation()
@@ -227,6 +227,20 @@ class HomeActivity : BaseActivity() {
                 isUpdatingUI = true
                 availabilityRadioGroup.clearCheck()
                 isUpdatingUI = false
+                dialog.dismiss()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun showNoConfirmationDialog(reason: String?) {
+        AlertDialog.Builder(this)
+            .setTitle("Confirm Unavailability")
+            .setMessage("Are you sure you will not available for this match?")
+            .setPositiveButton("OK") { _, _ ->
+                saveAvailability(false, reason)
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
                 dialog.dismiss()
             }
             .setCancelable(false)

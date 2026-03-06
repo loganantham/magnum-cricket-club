@@ -16,9 +16,9 @@ class IncomeTypeViewModel(application: Application) : AndroidViewModel(applicati
     
     fun insertIncomeType(incomeType: IncomeType) {
         viewModelScope.launch {
-            incomeTypeRepository.insertIncomeType(incomeType)
-            // Sync to Firestore
-            syncService.syncIncomeType(incomeType)
+            val id = incomeTypeRepository.insertIncomeType(incomeType)
+            // Sync to Firestore with the generated ID
+            syncService.syncIncomeType(incomeType.copy(id = id))
         }
     }
     

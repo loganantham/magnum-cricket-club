@@ -24,9 +24,9 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     
     fun insertExpense(expense: Expense) {
         viewModelScope.launch {
-            expenseRepository.insertExpense(expense)
-            // Sync to Firestore in background
-            syncService.syncExpense(expense)
+            val id = expenseRepository.insertExpense(expense)
+            // Sync to Firestore with the generated ID
+            syncService.syncExpense(expense.copy(id = id))
         }
     }
     
@@ -65,5 +65,9 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     suspend fun isWhatsAppEnabled(): Boolean {
         val value = configRepository.getConfigValue(AppConfigRepository.KEY_WHATSAPP_ENABLED)
         return value?.toBoolean() ?: false
+    }
+
+    suspend fun getLatestTotalBalance(): Double {
+        return expenseRepository.getLatestTotalBalance()
     }
 }

@@ -8,6 +8,7 @@ class ExpenseRepository(private val expenseDao: ExpenseDao) {
     fun getAllIncomes(): Flow<List<Expense>> = expenseDao.getAllIncomes()
     suspend fun getExpenseById(id: Long): Expense? = expenseDao.getExpenseById(id)
     fun getTotalBalance(): Flow<Double> = expenseDao.getTotalBalance()
+    suspend fun getLatestTotalBalance(): Double = expenseDao.getLatestTotalBalance()
     fun getExpensesByType(typeId: Long): Flow<List<Expense>> = expenseDao.getExpensesByType(typeId)
     suspend fun insertExpense(expense: Expense): Long = expenseDao.insertExpense(expense)
     suspend fun updateExpense(expense: Expense) = expenseDao.updateExpense(expense)

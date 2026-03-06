@@ -129,12 +129,14 @@ class IncomesActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val groupId = viewModel.getWhatsAppGroupId()
             if (!groupId.isNullOrEmpty()) {
+                val latestBalance = viewModel.getLatestTotalBalance()
                 WhatsAppHelper.sendExpenseUpdateToGroup(
                     this@IncomesActivity,
                     groupId,
                     expense,
                     typeName,
-                    false
+                    false,
+                    latestBalance
                 )
             } else {
                 Toast.makeText(this@IncomesActivity, "WhatsApp Group ID not configured in settings", Toast.LENGTH_SHORT).show()

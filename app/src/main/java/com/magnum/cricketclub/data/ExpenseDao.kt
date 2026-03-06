@@ -19,6 +19,9 @@ interface ExpenseDao {
     
     @Query("SELECT COALESCE(SUM(CASE WHEN isIncome = 1 THEN amount ELSE -amount END), 0.0) FROM expenses")
     fun getTotalBalance(): Flow<Double>
+
+    @Query("SELECT COALESCE(SUM(CASE WHEN isIncome = 1 THEN amount ELSE -amount END), 0.0) FROM expenses")
+    suspend fun getLatestTotalBalance(): Double
     
     @Query("SELECT * FROM expenses WHERE expenseTypeId = :typeId ORDER BY date DESC")
     fun getExpensesByType(typeId: Long): Flow<List<Expense>>

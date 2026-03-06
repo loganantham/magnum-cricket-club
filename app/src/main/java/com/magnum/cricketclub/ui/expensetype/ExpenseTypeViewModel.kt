@@ -16,9 +16,9 @@ class ExpenseTypeViewModel(application: Application) : AndroidViewModel(applicat
     
     fun insertExpenseType(expenseType: ExpenseType) {
         viewModelScope.launch {
-            expenseTypeRepository.insertExpenseType(expenseType)
-            // Sync to Firestore
-            syncService.syncExpenseType(expenseType)
+            val id = expenseTypeRepository.insertExpenseType(expenseType)
+            // Sync to Firestore with the generated ID
+            syncService.syncExpenseType(expenseType.copy(id = id))
         }
     }
     

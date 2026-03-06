@@ -1,5 +1,6 @@
 package com.magnum.cricketclub.ui.expense
 
+import android.app.DatePickerDialog
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -7,6 +8,7 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
@@ -18,11 +20,13 @@ import com.magnum.cricketclub.R
 import com.magnum.cricketclub.data.Expense
 import com.magnum.cricketclub.data.ExpenseType
 import com.magnum.cricketclub.data.IncomeType
+import com.magnum.cricketclub.utils.DateUtils
 import com.magnum.cricketclub.utils.WhatsAppHelper
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 class AddEditExpenseActivity : AppCompatActivity() {
     private lateinit var viewModel: ExpenseViewModel
@@ -32,6 +36,8 @@ class AddEditExpenseActivity : AppCompatActivity() {
     private lateinit var typeHintTextView: TextView
     private lateinit var amountEditText: EditText
     private lateinit var descriptionEditText: EditText
+    private lateinit var dateTextView: TextView
+    private lateinit var shareWhatsAppCheckBox: CheckBox
     private lateinit var saveButton: MaterialButton
     private lateinit var deleteButton: MaterialButton
     
@@ -42,6 +48,7 @@ class AddEditExpenseActivity : AppCompatActivity() {
     private var selectedExpenseType: ExpenseType? = null
     private var selectedIncomeType: IncomeType? = null
     private var createdByEmail: String? = null
+    private var selectedDate: Long = System.currentTimeMillis()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,10 +67,13 @@ class AddEditExpenseActivity : AppCompatActivity() {
         typeHintTextView = findViewById(R.id.typeHintTextView)
         amountEditText = findViewById(R.id.amountEditText)
         descriptionEditText = findViewById(R.id.descriptionEditText)
+        dateTextView = findViewById(R.id.dateTextView)
+        shareWhatsAppCheckBox = findViewById(R.id.shareWhatsAppCheckBox)
         saveButton = findViewById(R.id.saveButton)
         deleteButton = findViewById(R.id.deleteButton)
 
         setupEntryTypeDropdown()
+        setupDatePicker()
 
         // Entry Type UX
         entryTypeAutoComplete.setOnClickListener { entryTypeAutoComplete.showDropDown() }
@@ -110,6 +120,7 @@ class AddEditExpenseActivity : AppCompatActivity() {
             entryTypeAutoComplete.setText(initialEntryType, false)
             updateCategoryUiLabels()
             deleteButton.visibility = View.GONE
+            updateDateTextView()
         }
 
         // Load categories
@@ -137,6 +148,8 @@ class AddEditExpenseActivity : AppCompatActivity() {
                     amountEditText.setText(it.amount.toString())
                     descriptionEditText.setText(it.description)
                     createdByEmail = it.createdByEmail
+                    selectedDate = it.date
+                    updateDateTextView()
                     
                     updateCategoryUiLabels()
                     
@@ -200,6 +213,34 @@ class AddEditExpenseActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupDatePicker() {
+        val dateClickListener = View.OnClickListener {
+            val calendar = Calendar.getInstance()
+            calendar.timeInMillis = selectedDate
+            
+            val datePickerDialog = DatePickerDialog(
+                this,
+                { _, year, month, dayOfMonth ->
+                    val selectedCalendar = Calendar.getInstance()
+                    selectedCalendar.set(year, month, dayOfMonth)
+                    selectedDate = selectedCalendar.timeInMillis
+                    updateDateTextView()
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            )
+            datePickerDialog.show()
+        }
+        
+        findViewById<View>(R.id.dateLayout).setOnClickListener(dateClickListener)
+        dateTextView.setOnClickListener(dateClickListener)
+    }
+
+    private fun updateDateTextView() {
+        dateTextView.text = DateUtils.formatDate(selectedDate)
+    }
+
     private fun updateCategoryUiLabels() {
         if (isIncome) {
             supportActionBar?.title = if (expenseId == null) getString(R.string.add_income) else getString(R.string.edit_income)
@@ -255,6 +296,7 @@ class AddEditExpenseActivity : AppCompatActivity() {
         }
 
         val currentUserEmail = FirebaseAuth.getInstance().currentUser?.email
+        val shouldShare = shareWhatsAppCheckBox.isChecked
 
         lifecycleScope.launch {
             val expense = if (expenseId != null) {
@@ -264,6 +306,7 @@ class AddEditExpenseActivity : AppCompatActivity() {
                     incomeTypeId = if (isIncome) selectedIncomeType!!.id else null,
                     amount = amount,
                     description = description,
+                    date = selectedDate,
                     isIncome = isIncome,
                     createdByEmail = createdByEmail ?: currentUserEmail
                 )
@@ -273,6 +316,7 @@ class AddEditExpenseActivity : AppCompatActivity() {
                     incomeTypeId = if (isIncome) selectedIncomeType!!.id else null,
                     amount = amount,
                     description = description,
+                    date = selectedDate,
                     isIncome = isIncome,
                     createdByEmail = currentUserEmail
                 )
@@ -284,16 +328,15 @@ class AddEditExpenseActivity : AppCompatActivity() {
                 viewModel.insertExpense(expense)
             }
 
-            // Send WhatsApp message
-            val groupId = viewModel.getWhatsAppGroupId()
-            if (groupId != null && groupId.isNotEmpty()) {
+            if (shouldShare) {
+                val latestBalance = viewModel.getLatestTotalBalance()
                 val typeName = if (isIncome) selectedIncomeType?.name else selectedExpenseType?.name
-                WhatsAppHelper.sendExpenseUpdateToGroup(
+                WhatsAppHelper.shareExpenseViaWhatsApp(
                     this@AddEditExpenseActivity,
-                    groupId,
                     expense,
                     typeName, 
-                    expenseId == null
+                    expenseId == null,
+                    latestBalance
                 )
             }
 
