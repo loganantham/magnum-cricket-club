@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/dialogTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="User Details"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="24dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Full Name">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/nameEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Email Address">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/emailEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textEmailAddress" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Player Preference"
+            android:textSize="12sp"
+            android:textColor="@color/text_hint"
+            android:layout_marginStart="4dp"
+            android:layout_marginBottom="4dp" />
+
+        <Spinner
+            android:id="@+id/preferenceSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:minHeight="48dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Mobile Number">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/mobileEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="phone" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="Alternate Mobile">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/alternateMobileEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="phone" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Additional Responsibilities"
+            android:textSize="12sp"
+            android:textColor="@color/text_hint"
+            android:layout_marginStart="4dp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:id="@+id/responsibilitiesContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+            <!-- Checkboxes will be added dynamically or statically -->
+            <CheckBox android:id="@+id/cbAppOwner" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="App Owner" />
+            <CheckBox android:id="@+id/cbAppDeveloper" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="App Developer" />
+            <CheckBox android:id="@+id/cbManager" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Manager" />
+            <CheckBox android:id="@+id/cbSecretary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Secretary" />
+            <CheckBox android:id="@+id/cbCaptain" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Captain" />
+            <CheckBox android:id="@+id/cbViceCaptain" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Vice Captain" />
+            <CheckBox android:id="@+id/cbPlayer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Player" />
+            <CheckBox android:id="@+id/cbFinanceMaintenance" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Finance Maintenance" />
+            <CheckBox android:id="@+id/cbFinanceContributor" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Finance Contributor" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

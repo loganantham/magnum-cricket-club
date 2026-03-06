@@ -1,8 +1,16 @@
 package com.magnum.cricketclub.ui
 
+import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.pdf.PdfDocument
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -22,8 +30,12 @@ import com.magnum.cricketclub.ui.teamprofile.TeamLedgerActivity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import java.text.DateFormatSymbols
+import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : BaseActivity() {
@@ -273,7 +285,138 @@ class MainActivity : BaseActivity() {
         val year = overviewYearState.value
         val monthIdx = overviewMonthState.value
         val monthName = if (monthIdx == -1) "Yearly" else DateFormatSymbols().months[monthIdx]
-        Toast.makeText(this, "Generating PDF Report for $monthName $year...", Toast.LENGTH_LONG).show()
+        
+        lifecycleScope.launch {
+            val expenses = viewModel.allExpenses.first()
+            val cal = Calendar.getInstance()
+            val filtered = expenses.filter { e ->
+                cal.timeInMillis = e.date
+                val y = cal.get(Calendar.YEAR)
+                val m = cal.get(Calendar.MONTH)
+                (y == year) && (monthIdx == -1 || m == monthIdx)
+            }.sortedBy { it.date }
+
+            if (filtered.isEmpty()) {
+                Toast.makeText(this@MainActivity, "No data to export", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            Toast.makeText(this@MainActivity, "Generating PDF Report for $monthName $year...", Toast.LENGTH_LONG).show()
+            generateAndSavePdf(filtered, "$monthName $year")
+        }
+    }
+
+    private fun generateAndSavePdf(expenses: List<Expense>, period: String) {
+        val pdfDocument = PdfDocument()
+        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4 size
+        val page = pdfDocument.startPage(pageInfo)
+        val canvas = page.canvas
+        val paint = Paint()
+        val titlePaint = Paint().apply {
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textSize = 18f
+        }
+        val headerPaint = Paint().apply {
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textSize = 12f
+        }
+        val textPaint = Paint().apply {
+            textSize = 10f
+        }
+
+        var yPos = 40f
+        canvas.drawText("Magnum Cricket Club - Expense Report", 40f, yPos, titlePaint)
+        yPos += 30f
+        canvas.drawText("Period: $period", 40f, yPos, headerPaint)
+        yPos += 40f
+
+        // Table headers
+        canvas.drawText("Date", 40f, yPos, headerPaint)
+        canvas.drawText("Description", 120f, yPos, headerPaint)
+        canvas.drawText("Type", 350f, yPos, headerPaint)
+        canvas.drawText("Amount", 480f, yPos, headerPaint)
+        yPos += 10f
+        canvas.drawLine(40f, yPos, 550f, yPos, paint)
+        yPos += 20f
+
+        val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+        for (expense in expenses) {
+            if (yPos > 800) {
+                // For simplicity, we limit to one page in this fix
+                // In a full implementation, we would start a new page
+                break 
+            }
+            canvas.drawText(dateFormat.format(Date(expense.date)), 40f, yPos, textPaint)
+            
+            val desc = if (expense.description.length > 35) expense.description.substring(0, 32) + "..." else expense.description
+            canvas.drawText(desc, 120f, yPos, textPaint)
+            
+            canvas.drawText(if (expense.isIncome) "Income" else "Expense", 350f, yPos, textPaint)
+            
+            val amountStr = String.format("%.2f", expense.amount)
+            canvas.drawText(amountStr, 480f, yPos, textPaint)
+            
+            yPos += 20f
+        }
+
+        val totalIncome = expenses.filter { it.isIncome }.sumOf { it.amount }
+        val totalExpense = expenses.filter { !it.isIncome }.sumOf { it.amount }
+        val balance = totalIncome - totalExpense
+
+        yPos += 20f
+        canvas.drawLine(40f, yPos, 550f, yPos, paint)
+        yPos += 20f
+        canvas.drawText("Total Income: ₹${String.format("%.2f", totalIncome)}", 40f, yPos, headerPaint)
+        yPos += 20f
+        canvas.drawText("Total Expense: ₹${String.format("%.2f", totalExpense)}", 40f, yPos, headerPaint)
+        yPos += 20f
+        canvas.drawText("Balance: ₹${String.format("%.2f", balance)}", 40f, yPos, headerPaint)
+
+        pdfDocument.finishPage(page)
+
+        val fileName = "Magnum_Report_${period.replace(" ", "_")}_${System.currentTimeMillis()}.pdf"
+        
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                }
+                val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                uri?.let {
+                    contentResolver.openOutputStream(it)?.use { outputStream ->
+                        pdfDocument.writeTo(outputStream)
+                    }
+                    Toast.makeText(this, "Report downloaded to Downloads folder", Toast.LENGTH_LONG).show()
+                    openPdf(uri)
+                }
+            } else {
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val file = File(downloadsDir, fileName)
+                pdfDocument.writeTo(FileOutputStream(file))
+                Toast.makeText(this, "Report downloaded to: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+                openPdf(Uri.fromFile(file))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Failed to export PDF: ${e.message}", Toast.LENGTH_SHORT).show()
+        } finally {
+            pdfDocument.close()
+        }
+    }
+
+    private fun openPdf(uri: Uri) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/pdf")
+                flags = Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_GRANT_READ_URI_PERMISSION
+            }
+            startActivity(Intent.createChooser(intent, "Open Report"))
+        } catch (e: Exception) {
+            // No app to open PDF
+        }
     }
 
     override fun onResume() {

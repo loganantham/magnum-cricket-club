@@ -66,6 +66,12 @@ class AuthActivity : AppCompatActivity() {
         }
     }
 
+    private fun isEmailDomainAllowed(email: String, allowedDomain: String?): Boolean {
+        if (allowedDomain.isNullOrBlank()) return true
+        val domain = email.substringAfterLast("@", "").lowercase()
+        return domain == allowedDomain.lowercase()
+    }
+
     private fun signIn() {
         val email = emailEditText.text?.toString()?.trim() ?: ""
         val password = passwordEditText.text?.toString()?.trim() ?: ""
@@ -75,18 +81,26 @@ class AuthActivity : AppCompatActivity() {
             return
         }
 
-        auth?.signInWithEmailAndPassword(email, password)
-            ?.addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    Toast.makeText(this, "Signed in successfully", Toast.LENGTH_SHORT).show()
-                    lifecycleScope.launch {
-                        SyncService(this@AuthActivity).syncFromFirestore()
-                    }
-                    navigateToHome()
-                } else {
-                    Toast.makeText(this, "Sign in failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
-                }
+        lifecycleScope.launch {
+            val allowedDomain = configRepository.getConfigValue(AppConfigRepository.KEY_ALLOWED_SIGNUP_DOMAIN)
+            if (!isEmailDomainAllowed(email, allowedDomain)) {
+                Toast.makeText(this@AuthActivity, "Sign in restricted", Toast.LENGTH_LONG).show()
+                return@launch
             }
+
+            auth?.signInWithEmailAndPassword(email, password)
+                ?.addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Toast.makeText(this@AuthActivity, "Signed in successfully", Toast.LENGTH_SHORT).show()
+                        lifecycleScope.launch {
+                            SyncService(this@AuthActivity).syncFromFirestore()
+                        }
+                        navigateToHome()
+                    } else {
+                        Toast.makeText(this@AuthActivity, "Sign in failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+        }
     }
 
     private fun signUp() {
@@ -98,19 +112,27 @@ class AuthActivity : AppCompatActivity() {
             return
         }
 
-        auth?.createUserWithEmailAndPassword(email, password)
-            ?.addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    Toast.makeText(this, "Account created successfully!", Toast.LENGTH_SHORT).show()
-                    if (intent.getStringExtra("mode") == "signup") {
-                        finish()
-                    } else {
-                        navigateToHome()
-                    }
-                } else {
-                    Toast.makeText(this, "Sign up failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
-                }
+        lifecycleScope.launch {
+            val allowedDomain = configRepository.getConfigValue(AppConfigRepository.KEY_ALLOWED_SIGNUP_DOMAIN)
+            if (!isEmailDomainAllowed(email, allowedDomain)) {
+                Toast.makeText(this@AuthActivity, "Sign up restricted", Toast.LENGTH_LONG).show()
+                return@launch
             }
+
+            auth?.createUserWithEmailAndPassword(email, password)
+                ?.addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Toast.makeText(this@AuthActivity, "Account created successfully!", Toast.LENGTH_SHORT).show()
+                        if (intent.getStringExtra("mode") == "signup") {
+                            finish()
+                        } else {
+                            navigateToHome()
+                        }
+                    } else {
+                        Toast.makeText(this@AuthActivity, "Sign up failed: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+        }
     }
 
     private fun navigateToHome() {

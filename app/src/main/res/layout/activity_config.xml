@@ -125,8 +125,7 @@
                                 android:layout_weight="1"
                                 android:text="@string/whatsapp_enabled"
                                 android:textSize="16sp"
-                                android:textColor="@color/text_primary"
-                                android:layout_marginEnd="16dp" />
+                                android:textColor="@color/text_primary"                                 android:layout_marginEnd="16dp" />
 
                             <com.google.android.material.switchmaterial.SwitchMaterial
                                 android:id="@+id/whatsappEnabledSwitch"
@@ -156,6 +155,82 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="@android:color/white">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Section Header -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="20dp">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_group"
+                            android:tint="?attr/colorPrimary"
+                            android:layout_marginEnd="12dp" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/team_settings"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                    </LinearLayout>
+
+                    <!-- Team Name Input -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/team_name"
+                        app:startIconDrawable="@drawable/ic_group"
+                        app:startIconTint="?attr/colorPrimary"
+                        app:hintTextColor="?attr/colorPrimary"
+                        app:boxStrokeColor="?attr/colorPrimary"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/teamNameEditText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textCapWords|textNoSuggestions"
+                            android:maxLines="1" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Helper Text -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="This name will be used in notifications and reports"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_hint"
+                        android:layout_marginTop="8dp"
+                        android:lineSpacingExtra="2dp" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- App Restrictions Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_marginBottom="32dp"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
@@ -179,7 +254,7 @@
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:src="@drawable/ic_cricket_player"
+                            android:src="@drawable/ic_share"
                             android:tint="?attr/colorPrimary"
                             android:layout_marginEnd="12dp" />
 
@@ -187,29 +262,29 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="@string/team_settings"
+                            android:text="App Restrictions"
                             android:textSize="20sp"
                             android:textStyle="bold"
                             android:textColor="@color/text_primary" />
 
                     </LinearLayout>
 
-                    <!-- Team Name Input -->
+                    <!-- Domain Restriction Input -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/team_name"
-                        app:startIconDrawable="@drawable/ic_cricket_player"
+                        android:hint="Allowed Signup Domain"
+                        app:startIconDrawable="@drawable/ic_share"
                         app:startIconTint="?attr/colorPrimary"
                         app:hintTextColor="?attr/colorPrimary"
                         app:boxStrokeColor="?attr/colorPrimary"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/teamNameEditText"
+                            android:id="@+id/allowedDomainEditText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textCapWords|textNoSuggestions"
+                            android:inputType="textUri|textNoSuggestions"
                             android:maxLines="1" />
 
                     </com.google.android.material.textfield.TextInputLayout>
@@ -218,7 +293,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="This name will be used in notifications and reports"
+                        android:text="Only users with this email domain will be allowed to signup/signin. e.g. magnum.cricket.club"
                         android:textSize="12sp"
                         android:textColor="@color/text_hint"
                         android:layout_marginTop="8dp"

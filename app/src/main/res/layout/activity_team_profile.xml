@@ -809,40 +809,6 @@
                         android:orientation="vertical"
                         android:visibility="gone">
 
-                        <!-- Domain Restriction -->
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Signup Restriction (Domain)"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary"
-                            android:layout_marginBottom="4dp" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginBottom="16dp">
-
-                            <EditText
-                                android:id="@+id/allowedDomainEditText"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:hint="e.g. gmail.com"
-                                android:inputType="textUri"
-                                android:textSize="14sp" />
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/saveDomainButton"
-                                style="@style/Widget.MaterialComponents.Button.TextButton"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Set" />
-                        </LinearLayout>
-
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnAddUser"
                             android:layout_width="match_parent"
@@ -851,10 +817,11 @@
                             android:layout_marginBottom="8dp"
                             app:icon="@android:drawable/ic_input_add" />
 
-                        <!-- List of Users for deletion is already in "Team Members" section,
-                             but we might want a specialized view here if deletion should be admin-only
-                             or if we need to manage auth status specifically.
-                             Assuming we use a specialized list or dialog for management. -->
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/appUsersRecyclerView"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:nestedScrollingEnabled="false" />
                     </LinearLayout>
 
                 </LinearLayout>
