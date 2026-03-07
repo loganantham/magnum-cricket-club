@@ -309,9 +309,9 @@ class FirestoreRepository {
     }
 
     // Match Availability
-    suspend fun uploadMatchAvailability(available: Boolean, matchDate: Long, reason: String? = null) {
+    suspend fun uploadMatchAvailability(available: Boolean, matchDate: Long, reason: String? = null, email: String? = null) {
         if (!isFirebaseAvailable()) return
-        val userEmail = getCurrentUserEmail() ?: return
+        val userEmail = email ?: getCurrentUserEmail() ?: return
         val teamId = getCurrentTeamId()
 
         val firestoreAvailability = FirestoreMatchAvailability(

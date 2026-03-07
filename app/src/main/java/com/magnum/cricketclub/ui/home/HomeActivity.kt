@@ -1,6 +1,8 @@
 package com.magnum.cricketclub.ui.home
 
 import android.content.Intent
+import android.graphics.Paint
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.EditText
@@ -9,6 +11,7 @@ import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
@@ -144,11 +147,31 @@ class HomeActivity : BaseActivity() {
                 matchTeamsTextView.text = "${match.team1} vs ${match.team2}"
                 matchDateTextView.text = formatter.format(Date(match.dateUtcMillis))
                 matchGroundTextView.text = match.groundName
+                
+                // Style location as a link
                 matchLocationTextView.text = match.groundLocation
-
-                upcomingMatchCard.setOnClickListener {
-                    startActivity(Intent(this@HomeActivity, com.magnum.cricketclub.ui.teamprofile.TeamProfileActivity::class.java))
+                matchLocationTextView.paintFlags = matchLocationTextView.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+                matchLocationTextView.setTextColor(ContextCompat.getColor(this@HomeActivity, R.color.primary_color))
+                
+                matchLocationTextView.setOnClickListener {
+                    try {
+                        val gmmIntentUri = Uri.parse(match.groundLocation)
+                        val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                        if (mapIntent.resolveActivity(packageManager) != null) {
+                            startActivity(mapIntent)
+                        } else {
+                            // Try opening in browser if no map app
+                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(match.groundLocation))
+                            startActivity(browserIntent)
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(this@HomeActivity, "Could not open location link", Toast.LENGTH_SHORT).show()
+                    }
                 }
+
+                // Removed card click listener as per request
+                upcomingMatchCard.setOnClickListener(null)
+                upcomingMatchCard.isClickable = false
                 
                 addMatchButton.text = if (canManageMatches) "Manage Match" else "View Details"
                 addMatchButton.visibility = View.VISIBLE
