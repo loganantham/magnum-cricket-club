@@ -137,7 +137,12 @@ class HomeActivity : BaseActivity() {
                 matchDateTextView.visibility = View.VISIBLE
                 matchGroundTextView.visibility = View.VISIBLE
                 matchLocationTextView.visibility = View.VISIBLE
-                availabilityLayout.visibility = View.VISIBLE
+                
+                val isMagnumMatch = match.team1.contains("Magnum", ignoreCase = true) || 
+                                   match.team2.contains("Magnum", ignoreCase = true)
+                
+                // Show availability only if it's a Magnum match
+                availabilityLayout.visibility = if (isMagnumMatch) View.VISIBLE else View.GONE
                 
                 val formatter = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).apply {
                     timeZone = TimeZone.getTimeZone("UTC")
@@ -174,8 +179,10 @@ class HomeActivity : BaseActivity() {
                 addMatchButton.text = if (canManageMatches) "Manage Match" else "View Details"
                 addMatchButton.visibility = View.VISIBLE
 
-                // Load user's availability
-                loadAvailability(match.dateUtcMillis)
+                // Load user's availability only if it's a Magnum match
+                if (isMagnumMatch) {
+                    loadAvailability(match.dateUtcMillis)
+                }
             } else {
                 currentMatchDateUtcMillis = 0
                 noUpcomingMatchTextView.visibility = View.VISIBLE
