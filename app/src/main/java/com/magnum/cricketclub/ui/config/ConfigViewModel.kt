@@ -4,11 +4,13 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.magnum.cricketclub.data.*
+import com.magnum.cricketclub.data.sync.SyncService
 import kotlinx.coroutines.launch
 
 class ConfigViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
     private val configRepository = AppConfigRepository(database.appConfigDao())
+    private val syncService = SyncService(application)
     
     suspend fun getWhatsAppGroupId(): String? {
         return configRepository.getConfigValue(AppConfigRepository.KEY_WHATSAPP_GROUP_ID)
@@ -30,24 +32,28 @@ class ConfigViewModel(application: Application) : AndroidViewModel(application) 
     fun setWhatsAppGroupId(groupId: String) {
         viewModelScope.launch {
             configRepository.setConfig(AppConfigRepository.KEY_WHATSAPP_GROUP_ID, groupId)
+            syncService.syncAppConfig(AppConfig(AppConfigRepository.KEY_WHATSAPP_GROUP_ID, groupId))
         }
     }
     
     fun setWhatsAppEnabled(enabled: Boolean) {
         viewModelScope.launch {
             configRepository.setConfig(AppConfigRepository.KEY_WHATSAPP_ENABLED, enabled.toString())
+            syncService.syncAppConfig(AppConfig(AppConfigRepository.KEY_WHATSAPP_ENABLED, enabled.toString()))
         }
     }
     
     fun setTeamName(teamName: String) {
         viewModelScope.launch {
             configRepository.setConfig(AppConfigRepository.KEY_TEAM_NAME, teamName)
+            syncService.syncAppConfig(AppConfig(AppConfigRepository.KEY_TEAM_NAME, teamName))
         }
     }
 
     fun setAllowedSignupDomain(domain: String) {
         viewModelScope.launch {
             configRepository.setConfig(AppConfigRepository.KEY_ALLOWED_SIGNUP_DOMAIN, domain)
+            syncService.syncAppConfig(AppConfig(AppConfigRepository.KEY_ALLOWED_SIGNUP_DOMAIN, domain))
         }
     }
 }

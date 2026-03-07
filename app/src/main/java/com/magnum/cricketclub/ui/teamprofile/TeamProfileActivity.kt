@@ -1,22 +1,23 @@
 package com.magnum.cricketclub.ui.teamprofile
 
+import android.content.ContentValues
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.pdf.PdfDocument
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.ArrayAdapter
-import android.widget.CheckBox
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.RadioGroup
-import android.widget.Spinner
-import android.widget.TextView
+import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.datepicker.CalendarConstraints
@@ -26,15 +27,17 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.magnum.cricketclub.R
 import com.magnum.cricketclub.data.*
+import com.magnum.cricketclub.data.remote.FirestoreMatchAvailability
 import com.magnum.cricketclub.data.remote.FirestoreRepository
+import com.magnum.cricketclub.data.sync.SyncService
 import com.magnum.cricketclub.ui.BaseActivity
 import com.magnum.cricketclub.utils.UpcomingMatchStore
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
+import java.util.*
 
 class TeamProfileActivity : BaseActivity() {
     private lateinit var upcomingMatchHeader: LinearLayout
@@ -53,6 +56,7 @@ class TeamProfileActivity : BaseActivity() {
     private lateinit var emptyAvailabilityTextView: TextView
     private lateinit var playerAvailabilityAdapter: PlayerAvailabilityAdapter
     private lateinit var availabilityFilterGroup: MaterialButtonToggleGroup
+    private lateinit var btnExportAvailability: MaterialButton
 
     private lateinit var teamMembersHeader: LinearLayout
     private lateinit var teamMembersContent: LinearLayout
@@ -63,6 +67,7 @@ class TeamProfileActivity : BaseActivity() {
     private lateinit var teamMemberAdapter: TeamMemberAdapter
     private lateinit var userProfileRepository: UserProfileRepository
     private val firestoreRepository = FirestoreRepository()
+    private lateinit var syncService: SyncService
     private val configRepository by lazy { AppConfigRepository(AppDatabase.getDatabase(application).appConfigDao()) }
 
     private lateinit var matchDateContainer: LinearLayout
@@ -102,6 +107,7 @@ class TeamProfileActivity : BaseActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         
         userProfileRepository = UserProfileRepository(application)
+        syncService = SyncService(applicationContext)
         currentUserEmail = FirebaseAuth.getInstance().currentUser?.email ?: ""
         
         upcomingMatchFormCard = findViewById(R.id.upcomingMatchFormCard)
@@ -119,6 +125,7 @@ class TeamProfileActivity : BaseActivity() {
         availabilityRecyclerView = findViewById(R.id.availabilityRecyclerView)
         emptyAvailabilityTextView = findViewById(R.id.emptyAvailabilityTextView)
         availabilityFilterGroup = findViewById(R.id.availabilityFilterGroup)
+        btnExportAvailability = findViewById(R.id.btnExportAvailability)
 
         teamMembersHeader = findViewById(R.id.teamMembersHeader)
         teamMembersContent = findViewById(R.id.teamMembersContent)
@@ -159,9 +166,9 @@ class TeamProfileActivity : BaseActivity() {
             ballDetailsLayout.visibility = if (checkedId == R.id.ballProvidedYes) View.VISIBLE else View.GONE
         }
 
-        // Collapsed by default
-        setExpanded(upcomingMatchContent, upcomingMatchChevron, expanded = false)
-        setExpanded(matchDetailsContent, matchDetailsChevron, expanded = false)
+        // Collapsed by default (except Match Details per request)
+        setExpanded(upcomingMatchContent, upcomingMatchChevron, expanded = true)
+        setExpanded(matchDetailsContent, matchDetailsChevron, expanded = true)
         setExpanded(playerAvailabilityContent, playerAvailabilityChevron, expanded = false)
         setExpanded(teamMembersContent, teamMembersChevron, expanded = false)
         setExpanded(appUsersContent, appUsersChevron, expanded = false)
@@ -196,6 +203,10 @@ class TeamProfileActivity : BaseActivity() {
             if (isChecked) {
                 loadPlayerAvailability(checkedId)
             }
+        }
+
+        btnExportAvailability.setOnClickListener {
+            exportAvailabilityReport()
         }
 
         setupUpcomingMatchForm()
@@ -308,10 +319,10 @@ class TeamProfileActivity : BaseActivity() {
 
                 lifecycleScope.launch {
                     try {
-                        // Save to Firestore
-                        firestoreRepository.uploadUserProfile(newProfile)
                         // Save to local DB
                         userProfileRepository.insertOrUpdate(newProfile)
+                        // Sync to Firestore
+                        syncService.syncUserProfile(newProfile)
                         
                         loadData() // Refresh lists
                         Toast.makeText(this@TeamProfileActivity, "User saved successfully", Toast.LENGTH_SHORT).show()
@@ -442,7 +453,10 @@ class TeamProfileActivity : BaseActivity() {
     private fun loadData() {
         lifecycleScope.launch {
             try {
-                // 1. Fetch latest match details from Firestore
+                // 1. Fetch latest from Firestore first using SyncService
+                syncService.syncFromFirestore()
+
+                // 2. Fetch latest match details from Firestore
                 val remoteMatch = try {
                     firestoreRepository.downloadUpcomingMatch()
                 } catch (e: Exception) {
@@ -454,28 +468,14 @@ class TeamProfileActivity : BaseActivity() {
                     displayMatchDetails(it)
                 }
 
-                // 2. Fetch latest profiles from Firestore
-                val firebaseProfiles = try {
-                    firestoreRepository.downloadAllUserProfiles()
-                } catch (e: Exception) {
-                    emptyList()
-                }
-                
-                // 3. Update local DB with Firestore data to ensure roles are current
-                firebaseProfiles.forEach { profile ->
-                    userProfileRepository.insertOrUpdate(profile)
-                }
-
-                // 4. Fetch all profiles including any local-only ones
-                val localProfiles = try {
+                // 3. Fetch all profiles from local DB (already updated by syncFromFirestore)
+                allUserProfiles = try {
                     userProfileRepository.getAllUserProfiles()
                 } catch (e: Exception) {
                     emptyList()
                 }
-                
-                allUserProfiles = (firebaseProfiles + localProfiles).distinctBy { it.email }
 
-                // 5. Identify current user's profile and roles using the LATEST data
+                // 4. Identify current user's profile and roles using the LATEST data
                 currentUserProfile = allUserProfiles.find { it.email.equals(currentUserEmail, ignoreCase = true) }
                     ?: userProfileRepository.getUserProfile(currentUserEmail).firstOrNull()
                 
@@ -484,9 +484,11 @@ class TeamProfileActivity : BaseActivity() {
                 
                 upcomingMatchFormCard.visibility = View.VISIBLE
                 
-                // Match Details editing is for authorized users only
-                matchDetailsHeader.visibility = if (canManageMatches) View.VISIBLE else View.GONE
-                matchDetailsContent.visibility = View.GONE 
+                // Match Details must be visible to all users
+                matchDetailsHeader.visibility = View.VISIBLE
+                
+                // Only managers can edit
+                updateMatchDetailsEditability(canManageMatches)
 
                 // App Users section is for App Owner/Developer ONLY
                 appUsersCard.visibility = if (isAdmin) View.VISIBLE else View.GONE
@@ -524,11 +526,15 @@ class TeamProfileActivity : BaseActivity() {
 
                 // Initialize PlayerAvailabilityAdapter
                 val namesMap = allUserProfiles.associate { it.email to (it.name ?: it.email) }
-                playerAvailabilityAdapter = PlayerAvailabilityAdapter(namesMap)
+                playerAvailabilityAdapter = PlayerAvailabilityAdapter(namesMap) { availability ->
+                    if (canManageMatches) {
+                        showUpdateAvailabilityDialog(availability)
+                    }
+                }
                 availabilityRecyclerView.adapter = playerAvailabilityAdapter
                 
                 // Load availability if the main section is expanded
-                if (upcomingMatchContent.visibility == View.VISIBLE && playerAvailabilityContent.visibility == View.VISIBLE) {
+                if (playerAvailabilityContent.visibility == View.VISIBLE) {
                     loadPlayerAvailability()
                 }
 
@@ -537,6 +543,77 @@ class TeamProfileActivity : BaseActivity() {
                 teamMembersRecyclerView.visibility = View.GONE
             }
         }
+    }
+
+    private fun showUpdateAvailabilityDialog(availability: FirestoreMatchAvailability) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_update_availability, null)
+        val nameTextView = dialogView.findViewById<TextView>(R.id.playerNameTextView)
+        val radioGroup = dialogView.findViewById<RadioGroup>(R.id.availabilityRadioGroup)
+        val rbAvailable = dialogView.findViewById<RadioButton>(R.id.rbAvailable)
+        val rbNotAvailable = dialogView.findViewById<RadioButton>(R.id.rbNotAvailable)
+        val reasonInputLayout = dialogView.findViewById<View>(R.id.reasonInputLayout)
+        val reasonEditText = dialogView.findViewById<EditText>(R.id.reasonEditText)
+
+        nameTextView.text = "Player: ${allUserProfiles.find { it.email == availability.userEmail }?.name ?: availability.userEmail}"
+        
+        if (availability.lastModified != 0L) {
+            if (availability.available) rbAvailable.isChecked = true
+            else rbNotAvailable.isChecked = true
+            reasonEditText.setText(availability.reason)
+            reasonInputLayout.visibility = if (availability.available) View.GONE else View.VISIBLE
+        }
+
+        radioGroup.setOnCheckedChangeListener { _, checkedId ->
+            reasonInputLayout.visibility = if (checkedId == R.id.rbNotAvailable) View.VISIBLE else View.GONE
+        }
+
+        AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setPositiveButton("Update") { _, _ ->
+                val isAvailable = rbAvailable.isChecked
+                val reason = if (!isAvailable) reasonEditText.text.toString().trim() else null
+                
+                if (!isAvailable && reason.isNullOrBlank()) {
+                    Toast.makeText(this, "Please provide a reason", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                lifecycleScope.launch {
+                    try {
+                        firestoreRepository.uploadMatchAvailability(
+                            isAvailable, 
+                            availability.matchDate, 
+                            reason, 
+                            availability.userEmail
+                        )
+                        loadPlayerAvailability()
+                        Toast.makeText(this@TeamProfileActivity, "Availability updated", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(this@TeamProfileActivity, "Failed to update", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun updateMatchDetailsEditability(canEdit: Boolean) {
+        matchDateContainer.isEnabled = canEdit
+        team1EditText.isEnabled = canEdit
+        team2EditText.isEnabled = canEdit
+        groundNameEditText.isEnabled = canEdit
+        groundLocationEditText.isEnabled = canEdit
+        groundFeesEditText.isEnabled = canEdit
+        oversEditText.isEnabled = canEdit
+        
+        for (i in 0 until ballProvidedRadioGroup.childCount) {
+            ballProvidedRadioGroup.getChildAt(i).isEnabled = canEdit
+        }
+        
+        noOfBallsEditText.isEnabled = canEdit
+        ballNameSpinner.isEnabled = canEdit
+        
+        saveMatchButton.visibility = if (canEdit) View.VISIBLE else View.GONE
     }
 
     private fun showDeleteUserDialog(profile: UserProfile) {
@@ -565,34 +642,200 @@ class TeamProfileActivity : BaseActivity() {
     private fun loadPlayerAvailability(checkedId: Int = availabilityFilterGroup.checkedButtonId) {
         val matchDate = selectedMatchDateUtcMillis ?: return
         
-        val availabilityFilter: Boolean? = when (checkedId) {
-            R.id.filterAvailable -> true
-            R.id.filterNotAvailable -> false
-            else -> null
-        }
-
         lifecycleScope.launch {
             try {
-                val availabilityList = firestoreRepository.downloadAllMatchAvailabilities(matchDate, availabilityFilter)
+                val confirmedAvailabilities = firestoreRepository.downloadAllMatchAvailabilities(matchDate, null)
+                val confirmedMap = confirmedAvailabilities.associateBy { it.userEmail }
                 
-                if (availabilityList.isEmpty()) {
+                // Build a list of ALL players with their confirmed status or "Pending"
+                val allPlayersAvailability = allUserProfiles.map { profile ->
+                    confirmedMap[profile.email] ?: FirestoreMatchAvailability(
+                        userEmail = profile.email,
+                        matchDate = matchDate,
+                        lastModified = 0L // Marker for "Not Confirmed"
+                    )
+                }
+
+                val filteredList = when (checkedId) {
+                    R.id.filterAvailable -> allPlayersAvailability.filter { it.lastModified != 0L && it.available }
+                    R.id.filterNotAvailable -> allPlayersAvailability.filter { it.lastModified != 0L && !it.available }
+                    else -> allPlayersAvailability // All includes Pending
+                }
+                
+                if (filteredList.isEmpty()) {
                     emptyAvailabilityTextView.text = when (checkedId) {
                         R.id.filterAvailable -> "No players available"
                         R.id.filterNotAvailable -> "No players unavailable"
-                        else -> "No availability updates yet"
+                        else -> "No players in team"
                     }
                     emptyAvailabilityTextView.visibility = View.VISIBLE
                     availabilityRecyclerView.visibility = View.GONE
                 } else {
                     emptyAvailabilityTextView.visibility = View.GONE
                     availabilityRecyclerView.visibility = View.VISIBLE
-                    playerAvailabilityAdapter.submitList(availabilityList)
+                    playerAvailabilityAdapter.submitList(filteredList)
                 }
             } catch (e: Exception) {
                 emptyAvailabilityTextView.visibility = View.VISIBLE
                 availabilityRecyclerView.visibility = View.GONE
                 Toast.makeText(this@TeamProfileActivity, "Failed to load availability", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private fun exportAvailabilityReport() {
+        val matchDate = selectedMatchDateUtcMillis ?: return
+        lifecycleScope.launch {
+            try {
+                val confirmedAvailabilities = firestoreRepository.downloadAllMatchAvailabilities(matchDate, null)
+                val confirmedMap = confirmedAvailabilities.associateBy { it.userEmail }
+                
+                val allPlayersAvailability = allUserProfiles.map { profile ->
+                    confirmedMap[profile.email] ?: FirestoreMatchAvailability(
+                        userEmail = profile.email,
+                        matchDate = matchDate,
+                        lastModified = 0L
+                    )
+                }
+
+                // Sorted with status: Available, Not available, then Pending
+                val sortedList = allPlayersAvailability.sortedWith(compareBy<FirestoreMatchAvailability> { 
+                    when {
+                        it.lastModified == 0L -> 2 // Pending
+                        it.available -> 0 // Available
+                        else -> 1 // Not Available
+                    }
+                }.thenBy { allUserProfiles.find { p -> p.email == it.userEmail }?.name ?: it.userEmail })
+
+                val match = UpcomingMatchStore.load(this@TeamProfileActivity)
+                generateAvailabilityPdf(sortedList, match)
+            } catch (e: Exception) {
+                Toast.makeText(this@TeamProfileActivity, "Export failed", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun generateAvailabilityPdf(availabilities: List<FirestoreMatchAvailability>, match: UpcomingMatch?) {
+        val pdfDocument = PdfDocument()
+        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
+        val page = pdfDocument.startPage(pageInfo)
+        val canvas = page.canvas
+        val paint = Paint()
+        val titlePaint = Paint().apply {
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textSize = 18f
+        }
+        val headerPaint = Paint().apply {
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textSize = 12f
+        }
+        val statsPaint = Paint().apply {
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textSize = 14f
+        }
+        val textPaint = Paint().apply {
+            textSize = 10f
+        }
+
+        var yPos = 40f
+        canvas.drawText("Magnum Cricket Club - Player Availability", 40f, yPos, titlePaint)
+        yPos += 30f
+
+        if (match != null) {
+            val formatter = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+            canvas.drawText("Match: ${match.team1} vs ${match.team2}", 40f, yPos, headerPaint)
+            yPos += 20f
+            canvas.drawText("Date: ${formatter.format(Date(match.dateUtcMillis))}", 40f, yPos, headerPaint)
+            yPos += 20f
+            canvas.drawText("Ground: ${match.groundName}", 40f, yPos, headerPaint)
+            yPos += 30f
+        }
+
+        // Add Stats Summary
+        val availableCount = availabilities.count { it.lastModified != 0L && it.available }
+        val notAvailableCount = availabilities.count { it.lastModified != 0L && !it.available }
+        
+        statsPaint.color = Color.parseColor("#4CAF50") // Green
+        canvas.drawText("Available Players: $availableCount", 40f, yPos, statsPaint)
+        
+        statsPaint.color = Color.parseColor("#F44336") // Red
+        val notAvailableWidth = statsPaint.measureText("Available Players: $availableCount") + 40
+        canvas.drawText("Not Available Players: $notAvailableCount", 40f + notAvailableWidth, yPos, statsPaint)
+        
+        yPos += 40f
+        paint.color = Color.BLACK
+
+        // Table headers
+        canvas.drawText("Player Name", 40f, yPos, headerPaint)
+        canvas.drawText("Status", 250f, yPos, headerPaint)
+        canvas.drawText("Reason", 380f, yPos, headerPaint)
+        yPos += 10f
+        canvas.drawLine(40f, yPos, 550f, yPos, paint)
+        yPos += 20f
+
+        for (item in availabilities) {
+            if (yPos > 800) break
+            
+            val name = allUserProfiles.find { it.email == item.userEmail }?.name ?: item.userEmail
+            canvas.drawText(name, 40f, yPos, textPaint)
+            
+            val status = when {
+                item.lastModified == 0L -> "Not Confirmed"
+                item.available -> "Available"
+                else -> "Not Available"
+            }
+            canvas.drawText(status, 250f, yPos, textPaint)
+            
+            val reason = item.reason ?: ""
+            val reasonDisplay = if (reason.length > 30) reason.substring(0, 27) + "..." else reason
+            canvas.drawText(reasonDisplay, 380f, yPos, textPaint)
+            
+            yPos += 20f
+        }
+
+        pdfDocument.finishPage(page)
+
+        val fileName = "Availability_Report_${System.currentTimeMillis()}.pdf"
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                }
+                val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                uri?.let {
+                    contentResolver.openOutputStream(it)?.use { outputStream ->
+                        pdfDocument.writeTo(outputStream)
+                    }
+                    Toast.makeText(this, "Report saved to Downloads", Toast.LENGTH_LONG).show()
+                    openPdf(uri)
+                }
+            } else {
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val file = File(downloadsDir, fileName)
+                pdfDocument.writeTo(FileOutputStream(file))
+                Toast.makeText(this, "Report saved to: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+                openPdf(Uri.fromFile(file))
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        } finally {
+            pdfDocument.close()
+        }
+    }
+
+    private fun openPdf(uri: Uri) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/pdf")
+                flags = Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_GRANT_READ_URI_PERMISSION
+            }
+            startActivity(Intent.createChooser(intent, "Open Report"))
+        } catch (e: Exception) {
+            Toast.makeText(this, "No app to open PDF", Toast.LENGTH_SHORT).show()
         }
     }
 }

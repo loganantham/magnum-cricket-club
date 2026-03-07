@@ -11,7 +11,7 @@ interface IncomeTypeDao {
     @Query("SELECT * FROM income_types WHERE id = :id")
     suspend fun getIncomeTypeById(id: Long): IncomeType?
     
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertIncomeType(incomeType: IncomeType): Long
     
     @Update

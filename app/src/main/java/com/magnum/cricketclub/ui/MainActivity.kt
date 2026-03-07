@@ -72,9 +72,10 @@ class MainActivity : BaseActivity() {
 
     private var currentUserProfile: UserProfile? = null
     private val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+    private val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
 
     private val overviewYearState = MutableStateFlow(currentYear)
-    private val overviewMonthState = MutableStateFlow(-1) // -1 for all year
+    private val overviewMonthState = MutableStateFlow(currentMonth)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -219,7 +220,8 @@ class MainActivity : BaseActivity() {
         val monthAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, months)
         monthAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         overviewMonthSpinner.adapter = monthAdapter
-        overviewMonthSpinner.setSelection(0)
+        // Default to current month (index in spinner = currentMonth + 1)
+        overviewMonthSpinner.setSelection(currentMonth + 1)
         overviewMonthSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
                 overviewMonthState.value = pos - 1
@@ -288,6 +290,9 @@ class MainActivity : BaseActivity() {
         
         lifecycleScope.launch {
             val expenses = viewModel.allExpenses.first()
+            val expenseTypes = viewModel.allExpenseTypes.first().associateBy { it.id }
+            val incomeTypes = viewModel.allIncomeTypes.first().associateBy { it.id }
+
             val cal = Calendar.getInstance()
             val filtered = expenses.filter { e ->
                 cal.timeInMillis = e.date
@@ -302,11 +307,16 @@ class MainActivity : BaseActivity() {
             }
 
             Toast.makeText(this@MainActivity, "Generating PDF Report for $monthName $year...", Toast.LENGTH_LONG).show()
-            generateAndSavePdf(filtered, "$monthName $year")
+            generateAndSavePdf(filtered, "$monthName $year", expenseTypes, incomeTypes)
         }
     }
 
-    private fun generateAndSavePdf(expenses: List<Expense>, period: String) {
+    private fun generateAndSavePdf(
+        expenses: List<Expense>, 
+        period: String,
+        expenseTypes: Map<Long, ExpenseType>,
+        incomeTypes: Map<Long, IncomeType>
+    ) {
         val pdfDocument = PdfDocument()
         val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4 size
         val page = pdfDocument.startPage(pageInfo)
@@ -328,13 +338,41 @@ class MainActivity : BaseActivity() {
         canvas.drawText("Magnum Cricket Club - Expense Report", 40f, yPos, titlePaint)
         yPos += 30f
         canvas.drawText("Period: $period", 40f, yPos, headerPaint)
-        yPos += 40f
+        yPos += 30f
+
+        // Grouping logic for summary
+        val summaryItems = mutableListOf<Pair<String, Double>>()
+        val grouped = expenses.groupBy { 
+            if (it.isIncome) {
+                val incomeTypeId = it.incomeTypeId ?: it.expenseTypeId
+                incomeTypes[incomeTypeId]?.name ?: "Unknown Income"
+            } else {
+                expenseTypes[it.expenseTypeId]?.name ?: "Unknown Expense"
+            }
+        }
+        
+        for ((name, items) in grouped) {
+            val total = items.sumOf { if (it.isIncome) it.amount else -it.amount }
+            summaryItems.add(name to total)
+        }
+
+        // Summary Section at the top
+        canvas.drawText("Summary by Category", 40f, yPos, headerPaint)
+        yPos += 20f
+        for ((name, amount) in summaryItems) {
+            canvas.drawText(name, 40f, yPos, textPaint)
+            val amountStr = "₹${String.format("%.2f", amount)}"
+            canvas.drawText(amountStr, 200f, yPos, textPaint)
+            yPos += 15f
+        }
+        yPos += 15f
 
         // Table headers
         canvas.drawText("Date", 40f, yPos, headerPaint)
-        canvas.drawText("Description", 120f, yPos, headerPaint)
-        canvas.drawText("Type", 350f, yPos, headerPaint)
-        canvas.drawText("Amount", 480f, yPos, headerPaint)
+        canvas.drawText("Category/Type", 110f, yPos, headerPaint)
+        canvas.drawText("Description", 280f, yPos, headerPaint)
+        canvas.drawText("I/E", 440f, yPos, headerPaint)
+        canvas.drawText("Amount", 490f, yPos, headerPaint)
         yPos += 10f
         canvas.drawLine(40f, yPos, 550f, yPos, paint)
         yPos += 20f
@@ -349,13 +387,26 @@ class MainActivity : BaseActivity() {
             }
             canvas.drawText(dateFormat.format(Date(expense.date)), 40f, yPos, textPaint)
             
-            val desc = if (expense.description.length > 35) expense.description.substring(0, 32) + "..." else expense.description
-            canvas.drawText(desc, 120f, yPos, textPaint)
+            // Category Type
+            val typeName = if (expense.isIncome) {
+                val incomeTypeId = expense.incomeTypeId ?: expense.expenseTypeId
+                incomeTypes[incomeTypeId]?.name ?: "Unknown"
+            } else {
+                expenseTypes[expense.expenseTypeId]?.name ?: "Unknown"
+            }
+            val typeNameTruncated = if (typeName.length > 25) typeName.substring(0, 22) + "..." else typeName
+            canvas.drawText(typeNameTruncated, 110f, yPos, textPaint)
+
+            // Description
+            val desc = if (expense.description.length > 25) expense.description.substring(0, 22) + "..." else expense.description
+            canvas.drawText(desc, 280f, yPos, textPaint)
             
-            canvas.drawText(if (expense.isIncome) "Income" else "Expense", 350f, yPos, textPaint)
+            // Income/Expense Indicator
+            canvas.drawText(if (expense.isIncome) "Inc" else "Exp", 440f, yPos, textPaint)
             
+            // Amount
             val amountStr = String.format("%.2f", expense.amount)
-            canvas.drawText(amountStr, 480f, yPos, textPaint)
+            canvas.drawText(amountStr, 490f, yPos, textPaint)
             
             yPos += 20f
         }

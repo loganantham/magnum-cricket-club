@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.magnum.cricketclub.data.*
 import com.magnum.cricketclub.data.remote.FirestoreRepository
+import com.magnum.cricketclub.data.sync.SyncService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +18,7 @@ class TeamLedgerViewModel(application: Application) : AndroidViewModel(applicati
     private val userProfileRepository = UserProfileRepository(application)
     private val configRepository = AppConfigRepository(database.appConfigDao())
     private val firestoreRepository = FirestoreRepository()
+    private val syncService = SyncService(application)
 
     private val _contributors = MutableStateFlow<List<UserProfile>>(emptyList())
     val contributors: StateFlow<List<UserProfile>> = _contributors.asStateFlow()
@@ -41,6 +43,9 @@ class TeamLedgerViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                // Download latest from Firestore first
+                syncService.syncFromFirestore()
+                
                 // Load contributors
                 val profiles = userProfileRepository.getAllUserProfiles()
                 _contributors.value = profiles.filter { it.isFinanceContributor() }
@@ -75,9 +80,12 @@ class TeamLedgerViewModel(application: Application) : AndroidViewModel(applicati
         _selectedMonth.value = month
     }
 
-    fun updateStatus(email: String, year: Int, monthIndex: Int, status: String) {
+    fun updateStatus(email: String, year: Int, monthIndex: Int, status: String, pendingAmount: Double? = null) {
         viewModelScope.launch {
-            ledgerRepository.upsertEntry(email, year, monthIndex, status, if (status == "Done") 0.0 else 1000.0)
+            val amount = pendingAmount ?: if (status == "Done") 0.0 else 1000.0
+            val entry = ledgerRepository.upsertEntry(email, year, monthIndex, status, amount)
+            // Sync to Firestore
+            syncService.syncContributionLedgerEntry(entry)
             refreshLedger()
         }
     }
