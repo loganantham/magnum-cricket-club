@@ -109,7 +109,7 @@ class FirestoreRepository {
     // Expenses
     suspend fun uploadExpense(expense: Expense) {
         if (!isFirebaseAvailable()) return
-        val userId = getCurrentUserId() ?: return
+        val userId = expense.userId ?: getCurrentUserId() ?: return
         val teamId = getCurrentTeamId()
 
         val firestoreExpense = FirestoreExpense(
@@ -191,6 +191,7 @@ class FirestoreRepository {
                     val incomeTypeId = if (isIncome) typeId else null
                     
                     val createdByEmail = data.getValue("createdByEmail", "added_by", "user_email", "email", "addedBy", "user") as? String
+                    val userId = data.getValue("userId", "user_id", "uid") as? String
 
                     Expense(
                         id = id,
@@ -200,7 +201,8 @@ class FirestoreRepository {
                         description = description,
                         date = date,
                         isIncome = isIncome,
-                        createdByEmail = createdByEmail
+                        createdByEmail = createdByEmail,
+                        userId = userId
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Error mapping expense doc: ${doc.id}", e)
@@ -387,7 +389,8 @@ class FirestoreRepository {
                     playerPreference = data.getValue("playerPreference", "preference", "role") as? String,
                     mobileNumber = data.getValue("mobileNumber", "mobile", "phone", "contact") as? String,
                     alternateMobileNumber = data.getValue("alternateMobileNumber", "alternateMobile", "secondaryPhone") as? String,
-                    additionalResponsibility = data.getValue("additionalResponsibility", "responsibility", "roles", "adminRole") as? String
+                    additionalResponsibility = data.getValue("additionalResponsibility", "responsibility", "roles", "adminRole") as? String,
+                    userId = data.getValue("userId", "user_id", "uid") as? String ?: ""
                 )
             } catch (e: Exception) {
                 null

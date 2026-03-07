@@ -14,5 +14,6 @@ data class Expense(
     val description: String = "",
     val date: Long = System.currentTimeMillis(),
     val isIncome: Boolean = false, // false = expense (subtraction), true = income (addition)
-    val createdByEmail: String? = null
+    val createdByEmail: String? = null,
+    val userId: String? = null
 )

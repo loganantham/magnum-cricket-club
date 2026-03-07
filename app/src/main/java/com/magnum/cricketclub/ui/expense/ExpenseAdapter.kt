@@ -25,6 +25,7 @@ class ExpenseAdapter(
     private var expenseTypes: Map<Long, ExpenseType> = emptyMap()
     private var incomeTypes: Map<Long, IncomeType> = emptyMap()
     private var runningBalances: Map<Long, Double> = emptyMap()
+    private var userNames: Map<String, String> = emptyMap()
 
     fun setExpenseTypes(types: List<ExpenseType>) {
         expenseTypes = types.associateBy { it.id }
@@ -38,6 +39,11 @@ class ExpenseAdapter(
 
     fun setRunningBalances(balances: Map<Long, Double>) {
         runningBalances = balances
+        notifyDataSetChanged()
+    }
+
+    fun setUserNames(names: Map<String, String>) {
+        userNames = names
         notifyDataSetChanged()
     }
 
@@ -84,7 +90,13 @@ class ExpenseAdapter(
                 descriptionTextView.visibility = View.GONE
             }
 
-            createdByTextView.text = "Added by: ${expense.createdByEmail ?: "Unknown"}"
+            val addedBy = if (!expense.userId.isNullOrEmpty()) {
+                userNames[expense.userId] ?: expense.createdByEmail ?: "Unknown"
+            } else {
+                expense.createdByEmail ?: "Unknown"
+            }
+            createdByTextView.text = "Added by: $addedBy"
+
             dateTextView.text = DateUtils.formatDateTime(expense.date)
             
             val sign = if (expense.isIncome) "+" else "-"
