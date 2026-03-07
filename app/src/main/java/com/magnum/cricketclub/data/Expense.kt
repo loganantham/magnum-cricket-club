@@ -1,5 +1,6 @@
 package com.magnum.cricketclub.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.Date
@@ -13,6 +14,7 @@ data class Expense(
     val amount: Double,
     val description: String = "",
     val date: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "income")
     val isIncome: Boolean = false, // false = expense (subtraction), true = income (addition)
     val createdByEmail: String? = null,
     val userId: String? = null

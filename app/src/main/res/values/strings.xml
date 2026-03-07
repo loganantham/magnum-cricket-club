@@ -69,9 +69,9 @@
     <string name="select_responsibility">Select Responsibility</string>
     <string name="whatsapp_settings">WhatsApp Settings</string>
     <string name="team_settings">Team Settings</string>
-    <string name="upcoming_match">Upcoming Match</string>
-    <string name="no_upcoming_match">No upcoming match details yet</string>
-    <string name="add_upcoming_match">Add upcoming match</string>
+    <string name="upcoming_match">Schedule Matches</string>
+    <string name="no_upcoming_match">No scheduled matches yet</string>
+    <string name="add_upcoming_match">Add Match</string>
     <string name="match_date">Match Date</string>
     <string name="select_match_date">Select match date</string>
     <string name="team_1">Team 1</string>
@@ -79,7 +79,24 @@
     <string name="ground_name">Ground Name</string>
     <string name="ground_location">Ground Location</string>
     <string name="save_match_details">Save match details</string>
-    <string name="edit_upcoming_match">Edit upcoming match</string>
+    <string name="edit_upcoming_match">Edit Match</string>
+    <string name="match_type">Match Type</string>
+    <string name="magnum_match">Magnum Match</string>
+    <string name="magnum_ground_match">Magnum Ground Match</string>
+    <string name="ground_fees">Ground Fees</string>
+    <string name="overs">Overs</string>
+    <string name="ground_fees_to_be_collected">Ground fees to be collected</string>
+    <string name="team1_fees_label">Team 1: %1$s</string>
+    <string name="team2_fees_label">Team 2: %1$s</string>
+    <string name="ground_fees_shared">Ground fees to be shared?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="ground_fees_maintenance">Ground Fees Maintenance</string>
+    <string name="status_done_delete">Done (Delete Match)</string>
+    <string name="pending_amount">Pending Amount</string>
+    <string name="collection_status">Collection Status</string>
+    <string name="team_wise_status">Team Wise Status</string>
+    <string name="partial_payment">Partial Payment</string>
     <string name="team_contribution_ledger">Team Contribution Ledger</string>
     <string name="filter_year">Year</string>
     <string name="contribution_year">Year</string>
@@ -105,4 +122,5 @@
     <string name="export_pdf">Export PDF</string>
     <string name="reports">Reports</string>
     <string name="share_via_whatsapp">Do you want to share the above expense details via whatsapp?</string>
+    <string name="currency_format">₹%1$.2f</string>
 </resources>

@@ -9,14 +9,14 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/Theme.MagnumCricketClub.AppBarOverlay">
+        android:theme="@style/Theme.MagnumExpenses.AppBarOverlay">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            app:popupTheme="@style/Theme.MagnumCricketClub.PopupOverlay" />
+            app:popupTheme="@style/Theme.MagnumExpenses.PopupOverlay" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -29,7 +29,6 @@
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
-            android:id="@+id/mainContentLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -77,7 +76,7 @@
                             android:layout_height="24dp"
                             android:src="@android:drawable/arrow_down_float"
                             android:tint="@color/text_hint"
-                            android:rotation="180" />
+                            android:rotation="0" />
 
                     </LinearLayout>
 
@@ -86,201 +85,168 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:visibility="visible">
+                        android:visibility="gone">
 
-                        <!-- Overview Filters -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
-                            android:gravity="center_vertical"
                             android:layout_marginBottom="16dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/filter_year"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
 
                             <Spinner
                                 android:id="@+id/overviewYearSpinner"
-                                android:layout_width="wrap_content"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:spinnerMode="dropdown" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="16dp"
-                                android:text="Month:"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_primary" />
+                                android:layout_weight="1"
+                                android:layout_marginEnd="8dp" />
 
                             <Spinner
                                 android:id="@+id/overviewMonthSpinner"
-                                android:layout_width="wrap_content"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:layout_marginStart="8dp"
-                                android:spinnerMode="dropdown" />
+                                android:layout_weight="1" />
 
                         </LinearLayout>
 
-                        <!-- Total Balance Card -->
                         <com.google.android.material.card.MaterialCardView
                             android:id="@+id/balanceCard"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="12dp"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="2dp">
-
+                            app:cardCornerRadius="8dp"
+                            app:cardElevation="0dp"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#F5F5F5"
+                            android:clickable="true"
+                            android:focusable="true">
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
-                                android:padding="16dp">
-
+                                android:padding="16dp"
+                                android:gravity="center">
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="@string/total_balance"
-                                    android:textSize="14sp"
-                                    android:textColor="@android:color/darker_gray" />
-
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="14sp" />
                                 <TextView
                                     android:id="@+id/totalBalanceTextView"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:layout_marginTop="4dp"
                                     android:text="₹0.00"
-                                    android:textSize="24sp"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="28sp"
                                     android:textStyle="bold"
-                                    android:textColor="@color/primary_color" />
-
+                                    android:layout_marginTop="4dp" />
                             </LinearLayout>
-
                         </com.google.android.material.card.MaterialCardView>
 
-                        <!-- Expenses Card -->
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/expensesCard"
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="12dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="2dp">
+                            android:orientation="horizontal">
 
-                            <LinearLayout
-                                android:layout_width="match_parent"
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/incomesCard"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:padding="16dp">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginEnd="6dp"
+                                app:cardCornerRadius="8dp"
+                                app:cardElevation="0dp"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="#F5F5F5"
+                                android:clickable="true"
+                                android:focusable="true">
+                                <LinearLayout
+                                    android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:text="@string/expenses"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold" />
+                                    android:orientation="vertical"
+                                    android:padding="12dp">
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/incomes"
+                                        android:textColor="#4CAF50"
+                                        android:textSize="12sp"
+                                        android:textStyle="bold" />
+                                    <TextView
+                                        android:id="@+id/totalIncomesTextView"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="₹0.00"
+                                        android:textColor="@color/text_primary"
+                                        android:textSize="16sp"
+                                        android:textStyle="bold"
+                                        android:layout_marginTop="4dp" />
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
 
-                                <TextView
-                                    android:id="@+id/totalExpensesTextView"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginTop="4dp"
-                                    android:text="₹0.00"
-                                    android:textSize="20sp"
-                                    android:textColor="@color/red" />
-
-                            </LinearLayout>
-
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <!-- Incomes Card -->
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/incomesCard"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="12dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="2dp">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/expensesCard"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:padding="16dp">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="6dp"
+                                app:cardCornerRadius="8dp"
+                                app:cardElevation="0dp"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="#F5F5F5"
+                                android:clickable="true"
+                                android:focusable="true">
+                                <LinearLayout
+                                    android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:text="@string/incomes"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold" />
+                                    android:orientation="vertical"
+                                    android:padding="12dp">
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="@string/expenses"
+                                        android:textColor="#F44336"
+                                        android:textSize="12sp"
+                                        android:textStyle="bold" />
+                                    <TextView
+                                        android:id="@+id/totalExpensesTextView"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="₹0.00"
+                                        android:textColor="@color/text_primary"
+                                        android:textSize="16sp"
+                                        android:textStyle="bold"
+                                        android:layout_marginTop="4dp" />
+                                </LinearLayout>
+                            </com.google.android.material.card.MaterialCardView>
 
-                                <TextView
-                                    android:id="@+id/totalIncomesTextView"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginTop="4dp"
-                                    android:text="₹0.00"
-                                    android:textSize="20sp"
-                                    android:textColor="@color/green" />
+                        </LinearLayout>
 
-                            </LinearLayout>
-
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <!-- Reports Card -->
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/chartsCard"
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="12dp"
-                            android:clickable="true"
-                            android:focusable="true"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="2dp">
+                            android:orientation="horizontal"
+                            android:layout_marginTop="16dp">
 
-                            <LinearLayout
-                                android:layout_width="match_parent"
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnExportPdf"
+                                style="@style/Widget.MaterialComponents.Button.TextButton"
+                                android:layout_width="0dp"
                                 android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:padding="16dp">
+                                android:layout_weight="1"
+                                android:text="@string/export_pdf"
+                                app:icon="@android:drawable/ic_menu_save" />
 
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/reports"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold" />
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/chartsCard"
+                                style="@style/Widget.MaterialComponents.Button.TextButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/reports"
+                                app:icon="@drawable/ic_share" />
 
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginTop="4dp"
-                                    android:text="View expense reports and charts"
-                                    android:textSize="12sp"
-                                    android:textColor="@android:color/darker_gray" />
-
-                            </LinearLayout>
-
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <!-- Export PDF Button -->
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnExportPdf"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="@string/export_pdf"
-                            app:icon="@android:drawable/ic_menu_save" />
+                        </LinearLayout>
 
                     </LinearLayout>
 
@@ -338,25 +304,33 @@
                         android:id="@+id/expenseManagementContent"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
+                        android:orientation="horizontal"
                         android:visibility="gone">
 
-                        <!-- Expense Types Card -->
                         <com.google.android.material.card.MaterialCardView
                             android:id="@+id/expenseTypesCard"
-                            android:layout_width="match_parent"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="12dp"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp"
+                            app:cardCornerRadius="8dp"
+                            app:cardElevation="2dp"
                             android:clickable="true"
-                            android:focusable="true"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="2dp">
+                            android:focusable="true">
 
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
-                                android:padding="16dp">
+                                android:padding="16dp"
+                                android:gravity="center">
+
+                                <ImageView
+                                    android:layout_width="32dp"
+                                    android:layout_height="32dp"
+                                    android:src="@drawable/ic_settings"
+                                    android:tint="@color/primary_color"
+                                    android:layout_marginBottom="8dp" />
 
                                 <TextView
                                     android:layout_width="wrap_content"
@@ -377,22 +351,30 @@
 
                         </com.google.android.material.card.MaterialCardView>
 
-                        <!-- Income Types Card -->
                         <com.google.android.material.card.MaterialCardView
                             android:id="@+id/incomeTypesCard"
-                            android:layout_width="match_parent"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="12dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            app:cardCornerRadius="8dp"
+                            app:cardElevation="2dp"
                             android:clickable="true"
-                            android:focusable="true"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="2dp">
+                            android:focusable="true">
 
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
-                                android:padding="16dp">
+                                android:padding="16dp"
+                                android:gravity="center">
+
+                                <ImageView
+                                    android:layout_width="32dp"
+                                    android:layout_height="32dp"
+                                    android:src="@drawable/ic_money"
+                                    android:tint="@color/primary_color"
+                                    android:layout_marginBottom="8dp" />
 
                                 <TextView
                                     android:layout_width="wrap_content"
@@ -485,6 +467,81 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Ground Fees Maintenance Section (Moved from Team Profile) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/groundFeesMaintenanceCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="@android:color/white"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:id="@+id/groundFeesHeader"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/ground_fees_maintenance"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <ImageView
+                            android:id="@+id/groundFeesChevron"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@android:drawable/arrow_down_float"
+                            android:tint="@color/text_hint" />
+                    </LinearLayout>
+
+                    <FrameLayout
+                        android:id="@+id/groundFeesContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:id="@+id/rvGroundFeesMaintenance"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:nestedScrollingEnabled="false" />
+
+                        </LinearLayout>
+
+                        <ProgressBar
+                            android:id="@+id/groundFeesSyncProgressBar"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_gravity="center"
+                            android:visibility="gone" />
+
+                    </FrameLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Hidden empty state and recycler view (required for some code references but hidden as per request) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/expensesRecyclerView"
@@ -498,67 +555,54 @@
                 android:layout_height="wrap_content"
                 android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/teamContributionEmptyStateTextView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:visibility="gone" />
-
-            <LinearLayout
-                android:id="@+id/contributionTablesContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone" />
-
-            <Spinner
-                android:id="@+id/yearFilterSpinner"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:visibility="gone" />
-
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
-
-    <!-- Unauthorized Message -->
-    <LinearLayout
-        android:id="@+id/unauthorizedLayout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="24dp"
-        android:visibility="gone">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/not_authorized"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="@color/red" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/contact_secretary_for_access"
-            android:textSize="16sp"
-            android:textAlignment="center" />
-
-    </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddExpense"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="120dp"
+        android:layout_margin="16dp"
         android:src="@android:drawable/ic_input_add"
         app:tint="@android:color/white"
-        app:elevation="8dp" />
+        app:backgroundTint="@color/primary_color" />
+
+    <LinearLayout
+        android:id="@+id/unauthorizedLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/text_hint"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/not_authorized"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/contact_secretary_for_access"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:gravity="center"
+            android:layout_marginTop="8dp" />
+
+    </LinearLayout>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigation"

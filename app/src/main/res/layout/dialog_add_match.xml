@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/dialogTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/add_upcoming_match"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary_color"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Match Date -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/matchDateLayout"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/match_date"
+            android:layout_marginBottom="12dp"
+            app:startIconDrawable="@android:drawable/ic_menu_my_calendar">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/matchDateEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:clickable="true"
+                android:inputType="none" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/team_1"
+            android:layout_marginBottom="12dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/team1EditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/team_2"
+            android:layout_marginBottom="12dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/team2EditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/ground_name"
+            android:layout_marginBottom="12dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/groundNameEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/ground_location"
+            android:layout_marginBottom="12dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/groundLocationEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp"
+            android:baselineAligned="false">
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/ground_fees"
+                android:layout_marginEnd="8dp">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/groundFeesEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="numberDecimal" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/overs">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/oversEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:text="20" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/match_type"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <RadioGroup
+            android:id="@+id/matchTypeRadioGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+            <RadioButton
+                android:id="@+id/rbMagnumMatch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/magnum_match"
+                android:checked="true" />
+            <RadioButton
+                android:id="@+id/rbMagnumGroundMatch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/magnum_ground_match"
+                android:layout_marginStart="16dp" />
+        </RadioGroup>
+
+        <!-- Dynamic Content based on Match Type -->
+        <LinearLayout
+            android:id="@+id/magnumMatchOptions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="visible">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/ground_fees_shared"
+                android:layout_marginBottom="4dp" />
+            <RadioGroup
+                android:id="@+id/groundFeesSharedRadioGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <RadioButton
+                    android:id="@+id/rbFeesSharedYes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/yes" />
+                <RadioButton
+                    android:id="@+id/rbFeesSharedNo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/no"
+                    android:checked="true"
+                    android:layout_marginStart="16dp" />
+            </RadioGroup>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/magnumGroundMatchOptions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+            <CheckBox
+                android:id="@+id/cbTeam1Fees"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/ground_fees_to_be_collected" />
+            <CheckBox
+                android:id="@+id/cbTeam2Fees"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/ground_fees_to_be_collected" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

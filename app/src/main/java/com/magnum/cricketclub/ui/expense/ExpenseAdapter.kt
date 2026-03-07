@@ -77,9 +77,9 @@ class ExpenseAdapter(
         fun bind(expense: Expense) {
             val typeName = if (expense.isIncome) {
                 val incomeTypeId = expense.incomeTypeId ?: expense.expenseTypeId
-                incomeTypes[incomeTypeId]?.name ?: "Unknown"
+                incomeTypes[incomeTypeId]?.name ?: "Income"
             } else {
-                expenseTypes[expense.expenseTypeId]?.name ?: "Unknown"
+                expenseTypes[expense.expenseTypeId]?.name ?: "Expense"
             }
             expenseTypeTextView.text = typeName
             
