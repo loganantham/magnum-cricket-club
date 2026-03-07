@@ -18,6 +18,7 @@ import com.magnum.cricketclub.R
 import com.magnum.cricketclub.data.UserProfile
 import com.magnum.cricketclub.data.UserProfileRepository
 import com.magnum.cricketclub.data.remote.FirestoreRepository
+import com.magnum.cricketclub.data.sync.SyncService
 import com.magnum.cricketclub.ui.auth.AuthActivity
 import com.magnum.cricketclub.utils.SuccessOverlay
 import kotlinx.coroutines.launch
@@ -53,6 +54,7 @@ class MeActivity : BaseActivity() {
     private var auth: FirebaseAuth? = null
     private lateinit var userProfileRepository: UserProfileRepository
     private val firestoreRepository = FirestoreRepository()
+    private lateinit var syncService: SyncService
     private var currentEmail: String = ""
     private var editUserEmail: String? = null
     private var currentUserProfile: UserProfile? = null
@@ -76,6 +78,7 @@ class MeActivity : BaseActivity() {
         }
         
         userProfileRepository = UserProfileRepository(application)
+        syncService = SyncService(applicationContext)
         
         // Get current user email
         currentEmail = auth?.currentUser?.email ?: ""
@@ -424,7 +427,7 @@ class MeActivity : BaseActivity() {
                 
                 launch(Dispatchers.IO) {
                     try {
-                        firestoreRepository.uploadUserProfile(userProfile)
+                        syncService.syncUserProfile(userProfile)
                     } catch (e: Exception) {
                         android.util.Log.e("MeActivity", "Firebase sync failed", e)
                     }

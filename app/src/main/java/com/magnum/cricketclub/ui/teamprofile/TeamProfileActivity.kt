@@ -29,6 +29,7 @@ import com.magnum.cricketclub.R
 import com.magnum.cricketclub.data.*
 import com.magnum.cricketclub.data.remote.FirestoreMatchAvailability
 import com.magnum.cricketclub.data.remote.FirestoreRepository
+import com.magnum.cricketclub.data.sync.SyncService
 import com.magnum.cricketclub.ui.BaseActivity
 import com.magnum.cricketclub.utils.UpcomingMatchStore
 import kotlinx.coroutines.flow.firstOrNull
@@ -66,6 +67,7 @@ class TeamProfileActivity : BaseActivity() {
     private lateinit var teamMemberAdapter: TeamMemberAdapter
     private lateinit var userProfileRepository: UserProfileRepository
     private val firestoreRepository = FirestoreRepository()
+    private lateinit var syncService: SyncService
     private val configRepository by lazy { AppConfigRepository(AppDatabase.getDatabase(application).appConfigDao()) }
 
     private lateinit var matchDateContainer: LinearLayout
@@ -105,6 +107,7 @@ class TeamProfileActivity : BaseActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         
         userProfileRepository = UserProfileRepository(application)
+        syncService = SyncService(applicationContext)
         currentUserEmail = FirebaseAuth.getInstance().currentUser?.email ?: ""
         
         upcomingMatchFormCard = findViewById(R.id.upcomingMatchFormCard)
@@ -316,10 +319,10 @@ class TeamProfileActivity : BaseActivity() {
 
                 lifecycleScope.launch {
                     try {
-                        // Save to Firestore
-                        firestoreRepository.uploadUserProfile(newProfile)
                         // Save to local DB
                         userProfileRepository.insertOrUpdate(newProfile)
+                        // Sync to Firestore
+                        syncService.syncUserProfile(newProfile)
                         
                         loadData() // Refresh lists
                         Toast.makeText(this@TeamProfileActivity, "User saved successfully", Toast.LENGTH_SHORT).show()
@@ -450,7 +453,10 @@ class TeamProfileActivity : BaseActivity() {
     private fun loadData() {
         lifecycleScope.launch {
             try {
-                // 1. Fetch latest match details from Firestore
+                // 1. Fetch latest from Firestore first using SyncService
+                syncService.syncFromFirestore()
+
+                // 2. Fetch latest match details from Firestore
                 val remoteMatch = try {
                     firestoreRepository.downloadUpcomingMatch()
                 } catch (e: Exception) {
@@ -462,28 +468,14 @@ class TeamProfileActivity : BaseActivity() {
                     displayMatchDetails(it)
                 }
 
-                // 2. Fetch latest profiles from Firestore
-                val firebaseProfiles = try {
-                    firestoreRepository.downloadAllUserProfiles()
-                } catch (e: Exception) {
-                    emptyList()
-                }
-                
-                // 3. Update local DB with Firestore data to ensure roles are current
-                firebaseProfiles.forEach { profile ->
-                    userProfileRepository.insertOrUpdate(profile)
-                }
-
-                // 4. Fetch all profiles including any local-only ones
-                val localProfiles = try {
+                // 3. Fetch all profiles from local DB (already updated by syncFromFirestore)
+                allUserProfiles = try {
                     userProfileRepository.getAllUserProfiles()
                 } catch (e: Exception) {
                     emptyList()
                 }
-                
-                allUserProfiles = (firebaseProfiles + localProfiles).distinctBy { it.email }
 
-                // 5. Identify current user's profile and roles using the LATEST data
+                // 4. Identify current user's profile and roles using the LATEST data
                 currentUserProfile = allUserProfiles.find { it.email.equals(currentUserEmail, ignoreCase = true) }
                     ?: userProfileRepository.getUserProfile(currentUserEmail).firstOrNull()
                 

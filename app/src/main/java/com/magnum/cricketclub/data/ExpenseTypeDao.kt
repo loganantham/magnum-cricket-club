@@ -11,7 +11,7 @@ interface ExpenseTypeDao {
     @Query("SELECT * FROM expense_types WHERE id = :id")
     suspend fun getExpenseTypeById(id: Long): ExpenseType?
     
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExpenseType(expenseType: ExpenseType): Long
     
     @Update

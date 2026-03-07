@@ -2,9 +2,12 @@ package com.magnum.cricketclub.ui.teamprofile
 
 import android.graphics.Color
 import android.os.Bundle
+import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -117,6 +120,7 @@ class TeamLedgerActivity : BaseActivity() {
         val year = viewModel.selectedYear.value
         val summary = viewModel.getPendingSummary(year)
         val contributors = viewModel.contributors.value
+        val allEntries = viewModel.ledgerEntries.value
 
         if (summary.isEmpty()) {
             val emptyText = TextView(this).apply {
@@ -132,14 +136,21 @@ class TeamLedgerActivity : BaseActivity() {
         summary.forEach { (email, pendingMonths) ->
             val contributor = contributors.find { it.email == email }
             val name = contributor?.name ?: email
-            val totalAmount = pendingMonths.size * 1000
+            
+            // Calculate total pending amount accurately including partial payments
+            var totalAmount = 0.0
+            val userEntries = allEntries.filter { it.contributorEmail == email && it.year == year }
+            pendingMonths.forEach { m ->
+                val entry = userEntries.find { it.monthIndex == m }
+                totalAmount += entry?.pendingAmount ?: 1000.0
+            }
             
             val summaryRow = layoutInflater.inflate(R.layout.item_ledger_summary_row, binding.summaryContainer, false)
             summaryRow.findViewById<TextView>(R.id.nameTextView).text = name
-            summaryRow.findViewById<TextView>(R.id.pendingAmountTextView).text = "₹$totalAmount"
+            summaryRow.findViewById<TextView>(R.id.pendingAmountTextView).text = "₹${totalAmount.toInt()}"
             
             summaryRow.findViewById<MaterialButton>(R.id.remindButton).setOnClickListener {
-                sendIndividualReminder(contributor, pendingMonths)
+                sendIndividualReminder(contributor, pendingMonths, totalAmount.toInt())
             }
             
             binding.summaryContainer.addView(summaryRow)
@@ -175,12 +186,12 @@ class TeamLedgerActivity : BaseActivity() {
             }
         }
 
-        binding.ledgerRecyclerView.adapter = LedgerAdapter(adapterItems) { item, status ->
-            viewModel.updateStatus(item.user.email, year, item.monthIndex, status)
+        binding.ledgerRecyclerView.adapter = LedgerAdapter(adapterItems) { item, status, amount ->
+            viewModel.updateStatus(item.user.email, year, item.monthIndex, status, amount)
         }
     }
 
-    private fun sendIndividualReminder(user: UserProfile?, pendingMonths: List<Int>) {
+    private fun sendIndividualReminder(user: UserProfile?, pendingMonths: List<Int>, totalAmount: Int? = null) {
         val phone = user?.mobileNumber ?: user?.alternateMobileNumber
         if (phone.isNullOrBlank()) {
             Toast.makeText(this, "No mobile number for ${user?.name ?: "this user"}", Toast.LENGTH_SHORT).show()
@@ -188,8 +199,14 @@ class TeamLedgerActivity : BaseActivity() {
         }
         
         val year = viewModel.selectedYear.value
-        val totalAmount = pendingMonths.size * 1000
-        val monthBreakdown = pendingMonths.joinToString("\n") { "• ${monthNames[it]}: ₹1000" }
+        val finalAmount = totalAmount ?: (pendingMonths.size * 1000)
+        
+        val entries = viewModel.ledgerEntries.value.filter { it.contributorEmail == user?.email && it.year == year }
+        val monthBreakdown = pendingMonths.joinToString("\n") { m ->
+            val entry = entries.find { it.monthIndex == m }
+            val amount = entry?.pendingAmount ?: 1000.0
+            "• ${monthNames[m]}: ₹${amount.toInt()}"
+        }
         
         val message = """
             *Magnum CC Contribution Reminder* 🏏
@@ -199,7 +216,7 @@ class TeamLedgerActivity : BaseActivity() {
             
             $monthBreakdown
             
-            *Total Pending: ₹$totalAmount*
+            *Total Pending: ₹$finalAmount*
             
             Please clear it at your earliest via UPI. Ignore if already paid.
             Thank you!
@@ -213,6 +230,7 @@ class TeamLedgerActivity : BaseActivity() {
             val year = viewModel.selectedYear.value
             val summary = viewModel.getPendingSummary(year)
             val contributors = viewModel.contributors.value
+            val allEntries = viewModel.ledgerEntries.value
             
             if (summary.isEmpty()) {
                 Toast.makeText(this@TeamLedgerActivity, "No pending contributions to notify!", Toast.LENGTH_SHORT).show()
@@ -224,14 +242,21 @@ class TeamLedgerActivity : BaseActivity() {
             else 
                 monthNames[viewModel.selectedMonth.value]
 
-            var grandTotal = 0
+            var grandTotal = 0.0
             val summaryText = summary.entries.mapIndexed { index, entry ->
                 val contributor = contributors.find { it.email == entry.key }
                 val name = contributor?.name ?: entry.key
-                val amount = entry.value.size * 1000
-                grandTotal += amount
+                
+                var userTotal = 0.0
+                val userEntries = allEntries.filter { it.contributorEmail == entry.key && it.year == year }
+                entry.value.forEach { m ->
+                    val ledgerEntry = userEntries.find { it.monthIndex == m }
+                    userTotal += ledgerEntry?.pendingAmount ?: 1000.0
+                }
+                
+                grandTotal += userTotal
                 val months = entry.value.joinToString(", ") { monthNames[it].take(3) }
-                "${index + 1}. *$name*: ₹$amount ($months)"
+                "${index + 1}. *$name*: ₹${userTotal.toInt()} ($months)"
             }.joinToString("\n")
 
             val message = """
@@ -241,7 +266,7 @@ class TeamLedgerActivity : BaseActivity() {
                 *Pending Contributors:*
                 $summaryText
                 
-                *Grand Total Pending: ₹$grandTotal*
+                *Grand Total Pending: ₹${grandTotal.toInt()}*
                 
                 Requesting everyone to clear the dues to help manage club expenses efficiently.
                 
@@ -261,7 +286,7 @@ class TeamLedgerActivity : BaseActivity() {
 
     data class DetailItem(val user: UserProfile, val monthIndex: Int, val monthName: String, val entry: ContributionLedgerEntry?)
 
-    inner class LedgerAdapter(private val items: List<DetailItem>, private val onStatusChange: (DetailItem, String) -> Unit) :
+    inner class LedgerAdapter(private val items: List<DetailItem>, private val onStatusChange: (DetailItem, String, Double?) -> Unit) :
         androidx.recyclerview.widget.RecyclerView.Adapter<LedgerAdapter.ViewHolder>() {
 
         inner class ViewHolder(view: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
@@ -283,31 +308,74 @@ class TeamLedgerActivity : BaseActivity() {
             holder.monthText.text = displayText
             
             val status = item.entry?.status ?: "Pending"
+            val pendingAmount = item.entry?.pendingAmount ?: 1000.0
             holder.statusChip.text = status
+            holder.amountText.text = "₹${pendingAmount.toInt()}"
             
-            if (status == "Done") {
-                holder.statusChip.setChipBackgroundColorResource(android.R.color.holo_green_light)
-                holder.statusChip.setTextColor(Color.WHITE)
-                holder.remindButton.visibility = View.GONE
-            } else {
-                holder.statusChip.setChipBackgroundColorResource(android.R.color.holo_orange_light)
-                holder.statusChip.setTextColor(Color.BLACK)
-                holder.remindButton.visibility = View.VISIBLE
+            when (status) {
+                "Done" -> {
+                    holder.statusChip.setChipBackgroundColorResource(android.R.color.holo_green_light)
+                    holder.statusChip.setTextColor(Color.WHITE)
+                    holder.remindButton.visibility = View.GONE
+                }
+                "Partially Paid" -> {
+                    holder.statusChip.setChipBackgroundColorResource(android.R.color.holo_blue_light)
+                    holder.statusChip.setTextColor(Color.WHITE)
+                    holder.remindButton.visibility = View.VISIBLE
+                }
+                else -> {
+                    holder.statusChip.setChipBackgroundColorResource(android.R.color.holo_orange_light)
+                    holder.statusChip.setTextColor(Color.BLACK)
+                    holder.remindButton.visibility = View.VISIBLE
+                }
             }
 
             holder.statusChip.setOnClickListener {
-                val statuses = arrayOf("Pending", "Done")
+                val statuses = arrayOf("Pending", "Partially Paid", "Done")
                 MaterialAlertDialogBuilder(this@TeamLedgerActivity)
                     .setTitle("Update Status for ${item.monthName}")
                     .setItems(statuses) { _, which ->
-                        onStatusChange(item, statuses[which])
+                        val selectedStatus = statuses[which]
+                        if (selectedStatus == "Partially Paid") {
+                            showAmountInputDialog(item)
+                        } else {
+                            onStatusChange(item, selectedStatus, null)
+                        }
                     }
                     .show()
             }
 
             holder.remindButton.setOnClickListener {
-                sendIndividualReminder(item.user, listOf(item.monthIndex))
+                sendIndividualReminder(item.user, listOf(item.monthIndex), pendingAmount.toInt())
             }
+        }
+
+        private fun showAmountInputDialog(item: DetailItem) {
+            val input = EditText(this@TeamLedgerActivity)
+            input.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            input.hint = "Enter balance amount"
+            
+            val container = FrameLayout(this@TeamLedgerActivity)
+            val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            params.setMargins(48, 16, 48, 16)
+            input.layoutParams = params
+            container.addView(input)
+
+            MaterialAlertDialogBuilder(this@TeamLedgerActivity)
+                .setTitle("Balance Amount")
+                .setMessage("Enter the remaining amount to be paid for ${item.monthName}")
+                .setView(container)
+                .setPositiveButton("Update") { _, _ ->
+                    val amountStr = input.text.toString()
+                    if (amountStr.isNotEmpty()) {
+                        val amount = amountStr.toDoubleOrNull()
+                        if (amount != null) {
+                            onStatusChange(item, "Partially Paid", amount)
+                        }
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
 
         override fun getItemCount() = items.size

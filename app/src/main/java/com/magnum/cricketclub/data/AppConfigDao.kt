@@ -16,4 +16,7 @@ interface AppConfigDao {
     
     @Query("DELETE FROM app_config WHERE key = :key")
     suspend fun deleteConfig(key: String)
+
+    @Query("SELECT * FROM app_config")
+    suspend fun getAllConfigs(): List<AppConfig>
 }

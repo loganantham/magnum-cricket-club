@@ -1,13 +1,10 @@
 package com.magnum.cricketclub.data.sync
 
 import android.content.Context
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.lifecycleScope
 import com.magnum.cricketclub.data.*
 import com.magnum.cricketclub.data.remote.FirestoreRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class SyncService(private val context: Context) {
@@ -16,6 +13,9 @@ class SyncService(private val context: Context) {
     private val expenseDao = database.expenseDao()
     private val expenseTypeDao = database.expenseTypeDao()
     private val incomeTypeDao = database.incomeTypeDao()
+    private val appConfigDao = database.appConfigDao()
+    private val contributionLedgerDao = database.contributionLedgerDao()
+    private val userProfileDao = database.userProfileDao()
 
     enum class SyncStatus {
         IDLE, SYNCING, SUCCESS, ERROR
@@ -41,15 +41,12 @@ class SyncService(private val context: Context) {
                 val remoteExpenses = firestoreRepo.downloadExpenses()
                 val localExpenses = expenseDao.getAllExpenses().first()
 
-                // Merge strategy: Remote wins (last write wins)
                 for (remoteExpense in remoteExpenses) {
                     val localExpense = localExpenses.find { it.id == remoteExpense.id }
-                    if (localExpense == null || remoteExpense.date > localExpense.date) {
-                        if (localExpense == null) {
-                            expenseDao.insertExpense(remoteExpense)
-                        } else {
-                            expenseDao.updateExpense(remoteExpense)
-                        }
+                    if (localExpense == null) {
+                        expenseDao.insertExpense(remoteExpense)
+                    } else {
+                        expenseDao.updateExpense(remoteExpense)
                     }
                 }
 
@@ -75,10 +72,28 @@ class SyncService(private val context: Context) {
                     }
                 }
 
-                syncStatus = SyncStatus.SUCCESS
+                // Download App Config
+                val remoteConfigs = firestoreRepo.downloadAllAppConfigs()
+                for (config in remoteConfigs) {
+                    appConfigDao.insertOrUpdateConfig(config)
+                }
+
+                // Download Contribution Ledger
+                val remoteLedgerEntries = firestoreRepo.downloadAllContributionLedgerEntries()
+                for (entry in remoteLedgerEntries) {
+                    contributionLedgerDao.insertOrReplace(entry)
+                }
+                
+                // Download User Profiles
+                val remoteProfiles = firestoreRepo.downloadAllUserProfiles()
+                for (profile in remoteProfiles) {
+                    userProfileDao.insert(profile)
+                }
+
+                syncStatus = SUCCESS
             }
         } catch (e: Exception) {
-            syncStatus = SyncStatus.ERROR
+            syncStatus = ERROR
             e.printStackTrace()
         }
     }
@@ -88,11 +103,11 @@ class SyncService(private val context: Context) {
      */
     suspend fun syncToFirestore() {
         if (!firestoreRepo.isUserSignedIn()) {
-            syncStatus = SyncStatus.ERROR
+            syncStatus = ERROR
             return
         }
 
-        syncStatus = SyncStatus.SYNCING
+        syncStatus = SYNCING
 
         try {
             withContext(Dispatchers.IO) {
@@ -113,11 +128,17 @@ class SyncService(private val context: Context) {
                 for (type in localIncomeTypes) {
                     firestoreRepo.uploadIncomeType(type)
                 }
+                
+                // Upload User Profiles
+                val localProfiles = userProfileDao.getAllUserProfiles()
+                for (profile in localProfiles) {
+                    firestoreRepo.uploadUserProfile(profile)
+                }
 
-                syncStatus = SyncStatus.SUCCESS
+                syncStatus = SUCCESS
             }
         } catch (e: Exception) {
-            syncStatus = SyncStatus.ERROR
+            syncStatus = ERROR
             e.printStackTrace()
         }
     }
@@ -170,6 +191,45 @@ class SyncService(private val context: Context) {
     }
 
     /**
+     * Upload app config
+     */
+    suspend fun syncAppConfig(config: AppConfig) {
+        if (firestoreRepo.isUserSignedIn()) {
+            try {
+                firestoreRepo.uploadAppConfig(config)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    /**
+     * Upload contribution ledger entry
+     */
+    suspend fun syncContributionLedgerEntry(entry: ContributionLedgerEntry) {
+        if (firestoreRepo.isUserSignedIn()) {
+            try {
+                firestoreRepo.uploadContributionLedgerEntry(entry)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+    
+    /**
+     * Upload user profile
+     */
+    suspend fun syncUserProfile(userProfile: UserProfile) {
+        if (firestoreRepo.isUserSignedIn()) {
+            try {
+                firestoreRepo.uploadUserProfile(userProfile)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    /**
      * Delete expense from Firestore
      */
     suspend fun deleteExpenseFromFirestore(expenseId: Long) {
@@ -206,5 +266,11 @@ class SyncService(private val context: Context) {
                 e.printStackTrace()
             }
         }
+    }
+
+    companion object {
+        private val SUCCESS = SyncStatus.SUCCESS
+        private val ERROR = SyncStatus.ERROR
+        private val SYNCING = SyncStatus.SYNCING
     }
 }

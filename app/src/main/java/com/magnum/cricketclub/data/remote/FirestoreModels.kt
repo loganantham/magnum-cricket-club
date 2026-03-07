@@ -17,6 +17,7 @@ data class FirestoreExpense(
     @PropertyName("isIncome") val isIncome: Boolean = false,
     @PropertyName("userId") val userId: String = "",
     @PropertyName("teamId") val teamId: String = "",
+    @PropertyName("createdByEmail") val createdByEmail: String? = null,
     @PropertyName("lastModified") val lastModified: Long = System.currentTimeMillis(),
     @PropertyName("isDeleted") val isDeleted: Boolean = false
 )
@@ -80,5 +81,23 @@ data class FirestoreMatchAvailability(
     @PropertyName("reason") val reason: String? = null,
     @PropertyName("teamId") val teamId: String = "",
     @PropertyName("matchDate") val matchDate: Long = 0,
+    @PropertyName("lastModified") val lastModified: Long = System.currentTimeMillis()
+)
+
+data class FirestoreAppConfig(
+    @PropertyName("key") val key: String = "",
+    @PropertyName("value") val value: String = "",
+    @PropertyName("teamId") val teamId: String = "",
+    @PropertyName("lastModified") val lastModified: Long = System.currentTimeMillis()
+)
+
+data class FirestoreContributionLedgerEntry(
+    @PropertyName("id") val id: Long = 0,
+    @PropertyName("contributorEmail") val contributorEmail: String = "",
+    @PropertyName("year") val year: Int = 0,
+    @PropertyName("monthIndex") val monthIndex: Int = 0,
+    @PropertyName("status") val status: String = "",
+    @PropertyName("pendingAmount") val pendingAmount: Double = 0.0,
+    @PropertyName("teamId") val teamId: String = "",
     @PropertyName("lastModified") val lastModified: Long = System.currentTimeMillis()
 )

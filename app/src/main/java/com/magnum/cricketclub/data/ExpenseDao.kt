@@ -26,7 +26,7 @@ interface ExpenseDao {
     @Query("SELECT * FROM expenses WHERE expenseTypeId = :typeId ORDER BY date DESC")
     fun getExpensesByType(typeId: Long): Flow<List<Expense>>
     
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExpense(expense: Expense): Long
     
     @Update
