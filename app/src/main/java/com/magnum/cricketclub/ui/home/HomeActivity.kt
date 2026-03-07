@@ -5,26 +5,21 @@ import android.graphics.Paint
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
-import android.widget.EditText
-import android.widget.RadioButton
-import android.widget.RadioGroup
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import com.magnum.cricketclub.R
+import com.magnum.cricketclub.data.AppDatabase
 import com.magnum.cricketclub.data.UserProfileRepository
 import com.magnum.cricketclub.data.remote.FirestoreRepository
 import com.magnum.cricketclub.ui.BaseActivity
-import com.magnum.cricketclub.utils.UpcomingMatchStore
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
+import java.util.*
 
 class HomeActivity : BaseActivity() {
 
@@ -124,14 +119,17 @@ class HomeActivity : BaseActivity() {
 
             // Try to sync from Firestore first
             try {
-                firestoreRepository.downloadUpcomingMatch()?.let {
-                    UpcomingMatchStore.save(this@HomeActivity, it)
-                }
+                val remoteMatches = firestoreRepository.downloadUpcomingMatches()
+                val dao = AppDatabase.getDatabase(this@HomeActivity).upcomingMatchDao()
+                remoteMatches.forEach { dao.insertMatch(it) }
             } catch (e: Exception) {
                 // Ignore and use local data if sync fails
             }
 
-            val match = UpcomingMatchStore.load(this@HomeActivity)
+            val dao = AppDatabase.getDatabase(this@HomeActivity).upcomingMatchDao()
+            val matches = dao.getAllMatches().first()
+            val match = matches.firstOrNull { it.dateUtcMillis >= System.currentTimeMillis() } ?: matches.lastOrNull()
+
             if (match != null) {
                 currentMatchDateUtcMillis = match.dateUtcMillis
                 noUpcomingMatchTextView.visibility = View.GONE
@@ -139,7 +137,12 @@ class HomeActivity : BaseActivity() {
                 matchDateTextView.visibility = View.VISIBLE
                 matchGroundTextView.visibility = View.VISIBLE
                 matchLocationTextView.visibility = View.VISIBLE
-                availabilityLayout.visibility = View.VISIBLE
+                
+                val isMagnumMatch = match.team1.contains("Magnum", ignoreCase = true) || 
+                                   match.team2.contains("Magnum", ignoreCase = true)
+                
+                // Show availability only if it's a Magnum match
+                availabilityLayout.visibility = if (isMagnumMatch) View.VISIBLE else View.GONE
                 
                 val formatter = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).apply {
                     timeZone = TimeZone.getTimeZone("UTC")
@@ -176,8 +179,10 @@ class HomeActivity : BaseActivity() {
                 addMatchButton.text = if (canManageMatches) "Manage Match" else "View Details"
                 addMatchButton.visibility = View.VISIBLE
 
-                // Load user's availability
-                loadAvailability(match.dateUtcMillis)
+                // Load user's availability only if it's a Magnum match
+                if (isMagnumMatch) {
+                    loadAvailability(match.dateUtcMillis)
+                }
             } else {
                 currentMatchDateUtcMillis = 0
                 noUpcomingMatchTextView.visibility = View.VISIBLE

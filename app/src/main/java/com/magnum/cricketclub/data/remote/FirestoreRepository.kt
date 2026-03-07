@@ -43,15 +43,6 @@ class FirestoreRepository {
         }
     }
 
-    private fun Any?.asLongOrNull(): Long? {
-        val l = when (this) {
-            is Number -> this.toLong()
-            is String -> this.toLongOrNull()
-            else -> null
-        }
-        return if (l == null) null else l // Allow 0L if explicitly present, though usually we want non-zero
-    }
-
     private fun Any?.asDouble(default: Double = 0.0): Double {
         return when (this) {
             is Number -> this.toDouble()
@@ -61,20 +52,21 @@ class FirestoreRepository {
     }
 
     private fun Any?.asBoolean(default: Boolean = false): Boolean {
+        if (this == null) return default
         return when (this) {
             is Boolean -> this
             is Number -> this.toInt() != 0
             is String -> {
-                val s = this.lowercase()
-                s == "true" || s == "1" || s == "yes" || s == "income" || s == "credit"
+                val s = this.trim().lowercase()
+                s == "true" || s == "1" || s == "yes" || s == "income" || s == "credit" || s == "inc"
             }
             else -> default
         }
     }
 
     /**
-     * Finds the first non-null value for the given keys.
-     * Crucially, it skips keys that are present in the map but have a null value.
+     * Finds the first non-null value among the provided keys.
+     * Crucial for handling mixed schema versions in Firestore.
      */
     private fun Map<String, Any?>?.getValue(vararg keys: String): Any? {
         if (this == null) return null
@@ -91,8 +83,11 @@ class FirestoreRepository {
         return Math.abs(docId.hashCode().toLong())
     }
 
+    private fun getSemanticMatchId(match: UpcomingMatch): Long {
+        return Math.abs("${match.dateUtcMillis}_${match.team1}_${match.team2}".hashCode().toLong())
+    }
+
     private fun extractTypeId(data: Map<String, Any?>, isIncome: Boolean): Long? {
-        // Prioritize the correct field based on whether it's an income or expense
         val raw = if (isIncome) {
             data.getValue("incomeTypeId", "income_type_id", "expenseTypeId", "expense_type_id", "categoryId", "category_id", "typeId", "type_id", "category")
         } else {
@@ -109,7 +104,7 @@ class FirestoreRepository {
     // Expenses
     suspend fun uploadExpense(expense: Expense) {
         if (!isFirebaseAvailable()) return
-        val userId = getCurrentUserId() ?: return
+        val userId = expense.userId ?: getCurrentUserId() ?: return
         val teamId = getCurrentTeamId()
 
         val firestoreExpense = FirestoreExpense(
@@ -136,208 +131,189 @@ class FirestoreRepository {
         if (!isFirebaseAvailable()) return emptyList()
         val teamId = getCurrentTeamId()
 
-        val expenseCollections = listOf("expenses", "incomes", "transactions")
-        val snapshots = mutableListOf<com.google.firebase.firestore.QuerySnapshot>()
-        
-        for (coll in expenseCollections) {
-            try { snapshots.add(firestore!!.collection(coll).get().await()) } catch (e: Exception) {}
-        }
+        val snapshot = try {
+            firestore!!.collection("expenses")
+                .whereEqualTo("teamId", teamId)
+                .get()
+                .await()
+        } catch (e: Exception) {
+            null
+        } ?: return emptyList()
 
-        return snapshots.flatMap { snapshot ->
-            snapshot.documents.mapNotNull { doc ->
-                try {
-                    val data = doc.data ?: return@mapNotNull null
-                    
-                    val isDeleted = data.getValue("isDeleted", "deleted", "is_deleted").asBoolean()
-                    if (isDeleted) return@mapNotNull null
-                    
-                    val docTeamId = data.getValue("teamId", "team_id", "team") as? String ?: ""
-                    if (docTeamId.isNotEmpty() && docTeamId != teamId) return@mapNotNull null
+        return snapshot.documents.mapNotNull { doc ->
+            try {
+                val data = doc.data ?: return@mapNotNull null
+                
+                // Prioritize 'deleted' as per modern model, fallback to 'isDeleted'
+                val isDeleted = data.getValue("deleted", "isDeleted").asBoolean()
+                if (isDeleted) return@mapNotNull null
+                
+                var id = data.getValue("id").asLong()
+                if (id == 0L) id = getStableId(doc.id)
 
-                    // Ensure we have a valid numeric ID. Fallback to doc.id if field is missing or 0.
-                    var id = data.getValue("id", "expenseId", "expense_id").asLong()
-                    if (id == 0L) id = getStableId(doc.id)
+                val amount = Math.abs(data.getValue("amount").asDouble())
+                val description = data.getValue("description") as? String ?: ""
+                val date = data.getValue("date").asLong(System.currentTimeMillis())
+                
+                // CRITICAL: Prioritize 'income' field name as seen in the database screenshot
+                val isIncomeRaw = data.getValue("income", "isIncome")
+                val isIncome = isIncomeRaw.asBoolean()
 
-                    val amountRaw = data.getValue("amount", "value", "total").asDouble()
-                    val amount = Math.abs(amountRaw)
-                    val description = data.getValue("description", "desc", "note", "remarks") as? String ?: ""
-                    val date = data.getValue("date", "timestamp", "time", "createdAt").asLong(System.currentTimeMillis())
-                    
-                    // Prioritize the 'income' field as explicitly requested by user
-                    var isIncome = data["income"].asBoolean() || 
-                                  data.getValue("isIncome", "is_income", "isIncomeType", "is_credit", "credit").asBoolean()
-                    
-                    val typeVal = data.getValue("type", "entryType", "category", "transactionType", "kind")
-                    if (typeVal is String) {
-                        val s = typeVal.lowercase()
-                        if (s == "income" || s == "credit" || s == "contribution" || s == "opening balance") isIncome = true
-                        else if (s == "expense" || s == "debit") isIncome = false
-                    }
-                    
-                    if (doc.reference.parent.id == "incomes") isIncome = true
-                    if (description.contains("Opening Balance", ignoreCase = true) || 
-                        description.contains("Contribution", ignoreCase = true) ||
-                        description.contains("Refund", ignoreCase = true)) {
-                        isIncome = true
-                    }
-                    
-                    // Final check: if amount was negative and no explicit income flag found
-                    if (amountRaw < 0 && data["income"] == null && data["isIncome"] == null) {
-                        isIncome = false
-                    }
-
-                    val typeId = extractTypeId(data, isIncome)
-                    val expenseTypeId = if (!isIncome) typeId else null
-                    val incomeTypeId = if (isIncome) typeId else null
-                    
-                    val createdByEmail = data.getValue("createdByEmail", "added_by", "user_email", "email", "addedBy", "user") as? String
-
-                    Expense(
-                        id = id,
-                        expenseTypeId = expenseTypeId,
-                        incomeTypeId = incomeTypeId,
-                        amount = amount,
-                        description = description,
-                        date = date,
-                        isIncome = isIncome,
-                        createdByEmail = createdByEmail
-                    )
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error mapping expense doc: ${doc.id}", e)
-                    null
-                }
+                val typeId = extractTypeId(data, isIncome)
+                
+                Expense(
+                    id = id,
+                    expenseTypeId = if (!isIncome) typeId else null,
+                    incomeTypeId = if (isIncome) typeId else null,
+                    amount = amount,
+                    description = description,
+                    date = date,
+                    isIncome = isIncome,
+                    createdByEmail = data.getValue("createdByEmail") as? String,
+                    userId = data.getValue("userId") as? String
+                )
+            } catch (e: Exception) {
+                null
             }
         }.distinctBy { it.id }
     }
 
     suspend fun deleteExpense(expenseId: Long) {
         if (!isFirebaseAvailable()) return
-        val expenseRef = firestore!!.collection("expenses").document(expenseId.toString())
-        expenseRef.update("isDeleted", true, "lastModified", System.currentTimeMillis()).await()
+        firestore!!.collection("expenses").document(expenseId.toString())
+            .update("deleted", true, "lastModified", System.currentTimeMillis()).await()
     }
 
-    // Expense Types
-    suspend fun uploadExpenseType(expenseType: ExpenseType) {
+    // Upcoming Match
+    suspend fun uploadUpcomingMatch(match: UpcomingMatch) {
         if (!isFirebaseAvailable()) return
         val teamId = getCurrentTeamId()
+        
+        // Use a semantic ID for the document and the ID field to ensure cross-device consistency
+        val semanticId = getSemanticMatchId(match)
 
-        val firestoreType = FirestoreExpenseType(
-            id = expenseType.id,
-            name = expenseType.name,
-            description = expenseType.description,
+        val firestoreMatch = FirestoreUpcomingMatch(
+            id = semanticId,
+            dateUtcMillis = match.dateUtcMillis,
+            team1 = match.team1,
+            team2 = match.team2,
+            groundName = match.groundName,
+            groundLocation = match.groundLocation,
+            groundFees = match.groundFees,
+            ballProvided = match.ballProvided,
+            noOfBalls = match.noOfBalls,
+            ballName = match.ballName,
+            overs = match.overs,
+            matchType = match.matchType,
+            team1FeesCollected = match.team1FeesCollected,
+            team2FeesCollected = match.team2FeesCollected,
+            groundFeesShared = match.groundFeesShared,
+            team1FeesStatus = match.team1FeesStatus,
+            team2FeesStatus = match.team2FeesStatus,
+            team1PendingAmount = match.team1PendingAmount,
+            team2PendingAmount = match.team2PendingAmount,
             teamId = teamId,
             lastModified = System.currentTimeMillis()
         )
 
-        firestore!!.collection("expenseTypes")
-            .document(expenseType.id.toString())
-            .set(firestoreType)
+        firestore!!.collection("upcomingMatches")
+            .document(semanticId.toString())
+            .set(firestoreMatch)
             .await()
     }
 
-    suspend fun downloadExpenseTypes(): List<ExpenseType> {
+    suspend fun downloadUpcomingMatches(): List<UpcomingMatch> {
         if (!isFirebaseAvailable()) return emptyList()
         val teamId = getCurrentTeamId()
 
-        val collections = listOf("expenseTypes", "expense_types", "categories", "expenseCategories", "types")
-        val snapshots = mutableListOf<com.google.firebase.firestore.QuerySnapshot>()
-        
-        for (coll in collections) {
-            try { snapshots.add(firestore!!.collection(coll).get().await()) } catch (e: Exception) {}
-        }
+        val snapshot = try {
+            firestore!!.collection("upcomingMatches")
+                .whereEqualTo("teamId", teamId)
+                .get()
+                .await()
+        } catch (e: Exception) {
+            null
+        } ?: return emptyList()
 
-        return snapshots.flatMap { snapshot ->
-            snapshot.documents.mapNotNull { doc ->
-                try {
-                    val data = doc.data ?: return@mapNotNull null
-                    val isDeleted = data.getValue("isDeleted", "deleted", "is_deleted").asBoolean()
-                    if (isDeleted) return@mapNotNull null
-                    
-                    val docTeamId = data.getValue("teamId", "team_id") as? String ?: ""
-                    if (docTeamId.isNotEmpty() && docTeamId != teamId) return@mapNotNull null
+        return snapshot.documents.mapNotNull { doc ->
+            try {
+                val data = doc.data ?: return@mapNotNull null
+                val isDeleted = data.getValue("deleted", "isDeleted").asBoolean()
+                if (isDeleted) return@mapNotNull null
+                
+                val dateUtcMillis = data.getValue("dateUtcMillis").asLong()
+                val team1 = data.getValue("team1") as? String ?: ""
+                val team2 = data.getValue("team2") as? String ?: ""
+                
+                // Always recalculate semantic ID for consistency
+                val semanticId = Math.abs("${dateUtcMillis}_${team1}_${team2}".hashCode().toLong())
 
-                    var id = data.getValue("id", "typeId", "type_id", "categoryId", "category_id").asLong()
-                    if (id == 0L) id = getStableId(doc.id)
-                    
-                    val name = data.getValue("name", "title", "label", "typeName") as? String ?: ""
-                    val description = data.getValue("description", "desc", "info") as? String ?: ""
-
-                    ExpenseType(id = id, name = name, description = description)
-                } catch (e: Exception) {
-                    null
-                }
+                UpcomingMatch(
+                    id = semanticId,
+                    dateUtcMillis = dateUtcMillis,
+                    team1 = team1,
+                    team2 = team2,
+                    groundName = data.getValue("groundName") as? String ?: "",
+                    groundLocation = data.getValue("groundLocation") as? String ?: "",
+                    groundFees = data.getValue("groundFees").asDouble(),
+                    ballProvided = data.getValue("ballProvided").asBoolean(),
+                    noOfBalls = data.getValue("noOfBalls").asLong().toInt(),
+                    ballName = data.getValue("ballName") as? String,
+                    overs = data.getValue("overs").asLong().toInt().let { if (it == 0) 20 else it },
+                    matchType = data.getValue("matchType") as? String ?: "MAGNUM_MATCH",
+                    team1FeesCollected = data.getValue("team1FeesCollected").asBoolean(),
+                    team2FeesCollected = data.getValue("team2FeesCollected").asBoolean(),
+                    groundFeesShared = data.getValue("groundFeesShared").asBoolean(),
+                    team1FeesStatus = data.getValue("team1FeesStatus") as? String ?: "PENDING",
+                    team2FeesStatus = data.getValue("team2FeesStatus") as? String ?: "PENDING",
+                    team1PendingAmount = data.getValue("team1PendingAmount").asDouble(),
+                    team2PendingAmount = data.getValue("team2PendingAmount").asDouble()
+                )
+            } catch (e: Exception) {
+                null
             }
-        }.distinctBy { it.id }
+        }.distinctBy { it.id } // This now deduplicates by semantic ID
     }
 
-    suspend fun deleteExpenseType(typeId: Long) {
+    suspend fun deleteUpcomingMatch(matchId: Long) {
         if (!isFirebaseAvailable()) return
-        firestore!!.collection("expenseTypes")
-            .document(typeId.toString())
-            .update("isDeleted", true, "lastModified", System.currentTimeMillis())
-            .await()
+        // Try deleting by the provided ID
+        try {
+            firestore!!.collection("upcomingMatches")
+                .document(matchId.toString())
+                .update("deleted", true, "lastModified", System.currentTimeMillis())
+                .await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete by ID, might be a random document ID: $matchId")
+        }
     }
 
-    // Income Types
-    suspend fun uploadIncomeType(incomeType: IncomeType) {
+    /**
+     * More robust deletion that finds all documents matching the match content
+     */
+    suspend fun deleteUpcomingMatchRobustly(match: UpcomingMatch) {
         if (!isFirebaseAvailable()) return
         val teamId = getCurrentTeamId()
-
-        val firestoreType = FirestoreIncomeType(
-            id = incomeType.id,
-            name = incomeType.name,
-            description = incomeType.description,
-            teamId = teamId,
-            lastModified = System.currentTimeMillis()
-        )
-
-        firestore!!.collection("incomeTypes")
-            .document(incomeType.id.toString())
-            .set(firestoreType)
-            .await()
-    }
-
-    suspend fun downloadIncomeTypes(): List<IncomeType> {
-        if (!isFirebaseAvailable()) return emptyList()
-        val teamId = getCurrentTeamId()
-
-        val collections = listOf("incomeTypes", "income_types", "incomeCategories", "income_categories")
-        val snapshots = mutableListOf<com.google.firebase.firestore.QuerySnapshot>()
         
-        for (coll in collections) {
-            try { snapshots.add(firestore!!.collection(coll).get().await()) } catch (e: Exception) {}
-        }
+        try {
+            val snapshot = firestore!!.collection("upcomingMatches")
+                .whereEqualTo("teamId", teamId)
+                .whereEqualTo("dateUtcMillis", match.dateUtcMillis)
+                .whereEqualTo("team1", match.team1)
+                .whereEqualTo("team2", match.team2)
+                .get()
+                .await()
 
-        return snapshots.flatMap { snapshot ->
-            snapshot.documents.mapNotNull { doc ->
-                try {
-                    val data = doc.data ?: return@mapNotNull null
-                    val isDeleted = data.getValue("isDeleted", "deleted", "is_deleted").asBoolean()
-                    if (isDeleted) return@mapNotNull null
-                    
-                    val docTeamId = data.getValue("teamId", "team_id") as? String ?: ""
-                    if (docTeamId.isNotEmpty() && docTeamId != teamId) return@mapNotNull null
-
-                    var id = data.getValue("id", "typeId", "type_id", "categoryId", "category_id").asLong()
-                    if (id == 0L) id = getStableId(doc.id)
-                    
-                    val name = data.getValue("name", "title", "label", "typeName") as? String ?: ""
-                    val description = data.getValue("description", "desc", "info") as? String ?: ""
-
-                    IncomeType(id = id, name = name, description = description)
-                } catch (e: Exception) {
-                    null
+            if (!snapshot.isEmpty) {
+                val batch = firestore.batch()
+                for (doc in snapshot.documents) {
+                    batch.update(doc.reference, "deleted", true, "lastModified", System.currentTimeMillis())
                 }
+                batch.commit().await()
             }
-        }.distinctBy { it.id }
-    }
-
-    suspend fun deleteIncomeType(typeId: Long) {
-        if (!isFirebaseAvailable()) return
-        firestore!!.collection("incomeTypes")
-            .document(typeId.toString())
-            .update("isDeleted", true, "lastModified", System.currentTimeMillis())
-            .await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in robust deletion", e)
+        }
     }
 
     // User Profiles
@@ -369,7 +345,10 @@ class FirestoreRepository {
         val teamId = getCurrentTeamId()
 
         val snapshot = try {
-            firestore!!.collection("userProfiles").get().await()
+            firestore!!.collection("userProfiles")
+                .whereEqualTo("teamId", teamId)
+                .get()
+                .await()
         } catch (e: Exception) {
             null
         } ?: return emptyList()
@@ -377,17 +356,15 @@ class FirestoreRepository {
         return snapshot.documents.mapNotNull { doc ->
             try {
                 val data = doc.data ?: return@mapNotNull null
-                val docTeamId = data.getValue("teamId", "team_id") as? String ?: ""
-                
-                if (docTeamId.isNotEmpty() && docTeamId != teamId) return@mapNotNull null
 
                 UserProfile(
-                    email = data.getValue("email", "userEmail") as? String ?: doc.id,
-                    name = data.getValue("name", "displayName", "fullName") as? String,
-                    playerPreference = data.getValue("playerPreference", "preference", "role") as? String,
-                    mobileNumber = data.getValue("mobileNumber", "mobile", "phone", "contact") as? String,
-                    alternateMobileNumber = data.getValue("alternateMobileNumber", "alternateMobile", "secondaryPhone") as? String,
-                    additionalResponsibility = data.getValue("additionalResponsibility", "responsibility", "roles", "adminRole") as? String
+                    email = data.getValue("email") as? String ?: doc.id,
+                    name = data.getValue("name") as? String,
+                    playerPreference = data.getValue("playerPreference") as? String,
+                    mobileNumber = data.getValue("mobileNumber") as? String,
+                    alternateMobileNumber = data.getValue("alternateMobileNumber") as? String,
+                    additionalResponsibility = data.getValue("additionalResponsibility") as? String,
+                    userId = data.getValue("userId") as? String ?: ""
                 )
             } catch (e: Exception) {
                 null
@@ -397,66 +374,7 @@ class FirestoreRepository {
 
     suspend fun deleteUserProfile(email: String) {
         if (!isFirebaseAvailable()) return
-        firestore!!.collection("userProfiles")
-            .document(email)
-            .delete()
-            .await()
-    }
-
-    // Upcoming Match
-    suspend fun uploadUpcomingMatch(match: UpcomingMatch) {
-        if (!isFirebaseAvailable()) return
-        val teamId = getCurrentTeamId()
-
-        val firestoreMatch = FirestoreUpcomingMatch(
-            dateUtcMillis = match.dateUtcMillis,
-            team1 = match.team1,
-            team2 = match.team2,
-            groundName = match.groundName,
-            groundLocation = match.groundLocation,
-            groundFees = match.groundFees,
-            ballProvided = match.ballProvided,
-            noOfBalls = match.noOfBalls,
-            ballName = match.ballName,
-            overs = match.overs,
-            teamId = teamId,
-            lastModified = System.currentTimeMillis()
-        )
-
-        firestore!!.collection("upcomingMatches")
-            .document(teamId)
-            .set(firestoreMatch)
-            .await()
-    }
-
-    suspend fun downloadUpcomingMatch(): UpcomingMatch? {
-        if (!isFirebaseAvailable()) return null
-        val teamId = getCurrentTeamId()
-
-        val doc = try {
-            firestore!!.collection("upcomingMatches")
-                .document(teamId)
-                .get()
-                .await()
-        } catch (e: Exception) {
-            null
-        } ?: return null
-
-        if (!doc.exists()) return null
-
-        val data = doc.toObject(FirestoreUpcomingMatch::class.java) ?: return null
-        return UpcomingMatch(
-            dateUtcMillis = data.dateUtcMillis,
-            team1 = data.team1,
-            team2 = data.team2,
-            groundName = data.groundName,
-            groundLocation = data.groundLocation,
-            groundFees = data.groundFees,
-            ballProvided = data.ballProvided,
-            noOfBalls = data.noOfBalls,
-            ballName = data.ballName,
-            overs = data.overs
-        )
+        firestore!!.collection("userProfiles").document(email).delete().await()
     }
 
     // Match Availability
@@ -511,7 +429,6 @@ class FirestoreRepository {
         }
 
         val snapshot = try { query.get().await() } catch (e: Exception) { null } ?: return emptyList()
-
         return snapshot.documents.mapNotNull { it.toObject(FirestoreMatchAvailability::class.java) }
     }
 
@@ -519,33 +436,14 @@ class FirestoreRepository {
     suspend fun uploadAppConfig(config: AppConfig) {
         if (!isFirebaseAvailable()) return
         val teamId = getCurrentTeamId()
-
-        val firestoreConfig = FirestoreAppConfig(
-            key = config.key,
-            value = config.value,
-            teamId = teamId,
-            lastModified = System.currentTimeMillis()
-        )
-
-        firestore!!.collection("appConfigs")
-            .document("${teamId}_${config.key}")
-            .set(firestoreConfig)
-            .await()
+        val firestoreConfig = FirestoreAppConfig(key = config.key, value = config.value, teamId = teamId, lastModified = System.currentTimeMillis())
+        firestore!!.collection("appConfigs").document("${teamId}_${config.key}").set(firestoreConfig).await()
     }
 
     suspend fun downloadAllAppConfigs(): List<AppConfig> {
         if (!isFirebaseAvailable()) return emptyList()
         val teamId = getCurrentTeamId()
-
-        val snapshot = try {
-            firestore!!.collection("appConfigs")
-                .whereEqualTo("teamId", teamId)
-                .get()
-                .await()
-        } catch (e: Exception) {
-            null
-        } ?: return emptyList()
-
+        val snapshot = try { firestore!!.collection("appConfigs").whereEqualTo("teamId", teamId).get().await() } catch (e: Exception) { null } ?: return emptyList()
         return snapshot.documents.mapNotNull { doc ->
             val data = doc.toObject(FirestoreAppConfig::class.java) ?: return@mapNotNull null
             AppConfig(key = data.key, value = data.value)
@@ -556,30 +454,30 @@ class FirestoreRepository {
     suspend fun uploadContributionLedgerEntry(entry: ContributionLedgerEntry) {
         if (!isFirebaseAvailable()) return
         val teamId = getCurrentTeamId()
-
-        val firestoreEntry = FirestoreContributionLedgerEntry(
-            id = entry.id,
-            contributorEmail = entry.contributorEmail,
-            year = entry.year,
-            monthIndex = entry.monthIndex,
-            status = entry.status,
-            pendingAmount = entry.pendingAmount,
-            teamId = teamId,
-            lastModified = System.currentTimeMillis()
-        )
-
-        firestore!!.collection("contributionLedger")
-            .document("${teamId}_${entry.contributorEmail}_${entry.year}_${entry.monthIndex}")
-            .set(firestoreEntry)
-            .await()
+        val firestoreEntry = FirestoreContributionLedgerEntry(id = entry.id, contributorEmail = entry.contributorEmail, year = entry.year, monthIndex = entry.monthIndex, status = entry.status, pendingAmount = entry.pendingAmount, teamId = teamId, lastModified = System.currentTimeMillis())
+        firestore!!.collection("contributionLedger").document("${teamId}_${entry.contributorEmail}_${entry.year}_${entry.monthIndex}").set(firestoreEntry).await()
     }
 
     suspend fun downloadAllContributionLedgerEntries(): List<ContributionLedgerEntry> {
         if (!isFirebaseAvailable()) return emptyList()
         val teamId = getCurrentTeamId()
+        val snapshot = try { firestore!!.collection("contributionLedger").whereEqualTo("teamId", teamId).get().await() } catch (e: Exception) { null } ?: return emptyList()
+        return snapshot.documents.mapNotNull { doc ->
+            val data = doc.toObject(FirestoreContributionLedgerEntry::class.java) ?: return@mapNotNull null
+            ContributionLedgerEntry(id = data.id, contributorEmail = data.contributorEmail, year = data.year, monthIndex = data.monthIndex, status = data.status, pendingAmount = data.pendingAmount)
+        }
+    }
 
+    // Authentication
+    fun isUserSignedIn(): Boolean = auth?.currentUser != null
+    fun getCurrentUserEmail(): String? = auth?.currentUser?.email
+    fun getCurrentUserUid(): String? = auth?.currentUser?.uid
+
+    suspend fun downloadExpenseTypes(): List<ExpenseType> {
+        if (!isFirebaseAvailable()) return emptyList()
+        val teamId = getCurrentTeamId()
         val snapshot = try {
-            firestore!!.collection("contributionLedger")
+            firestore!!.collection("expenseTypes")
                 .whereEqualTo("teamId", teamId)
                 .get()
                 .await()
@@ -588,20 +486,64 @@ class FirestoreRepository {
         } ?: return emptyList()
 
         return snapshot.documents.mapNotNull { doc ->
-            val data = doc.toObject(FirestoreContributionLedgerEntry::class.java) ?: return@mapNotNull null
-            ContributionLedgerEntry(
-                id = data.id,
-                contributorEmail = data.contributorEmail,
-                year = data.year,
-                monthIndex = data.monthIndex,
-                status = data.status,
-                pendingAmount = data.pendingAmount
-            )
-        }
+            try {
+                val data = doc.data ?: return@mapNotNull null
+                if (data.getValue("deleted", "isDeleted").asBoolean()) return@mapNotNull null
+                
+                var id = data.getValue("id").asLong()
+                if (id == 0L) id = getStableId(doc.id)
+                
+                ExpenseType(id = id, name = data.getValue("name") as? String ?: "", description = data.getValue("description") as? String ?: "")
+            } catch (e: Exception) { null }
+        }.distinctBy { it.id }
     }
 
-    // Authentication
-    fun isUserSignedIn(): Boolean = auth?.currentUser != null
-    fun getCurrentUserEmail(): String? = auth?.currentUser?.email
-    fun getCurrentUserUid(): String? = auth?.currentUser?.uid
+    suspend fun uploadExpenseType(expenseType: ExpenseType) {
+        if (!isFirebaseAvailable()) return
+        val teamId = getCurrentTeamId()
+        val firestoreType = FirestoreExpenseType(id = expenseType.id, name = expenseType.name, description = expenseType.description, teamId = teamId, lastModified = System.currentTimeMillis())
+        firestore!!.collection("expenseTypes").document(expenseType.id.toString()).set(firestoreType).await()
+    }
+
+    suspend fun deleteExpenseType(typeId: Long) {
+        if (!isFirebaseAvailable()) return
+        firestore!!.collection("expenseTypes").document(typeId.toString()).update("deleted", true, "lastModified", System.currentTimeMillis()).await()
+    }
+
+    suspend fun downloadIncomeTypes(): List<IncomeType> {
+        if (!isFirebaseAvailable()) return emptyList()
+        val teamId = getCurrentTeamId()
+        val snapshot = try {
+            firestore!!.collection("incomeTypes")
+                .whereEqualTo("teamId", teamId)
+                .get()
+                .await()
+        } catch (e: Exception) {
+            null
+        } ?: return emptyList()
+
+        return snapshot.documents.mapNotNull { doc ->
+            try {
+                val data = doc.data ?: return@mapNotNull null
+                if (data.getValue("deleted", "isDeleted").asBoolean()) return@mapNotNull null
+                
+                var id = data.getValue("id").asLong()
+                if (id == 0L) id = getStableId(doc.id)
+                
+                IncomeType(id = id, name = data.getValue("name") as? String ?: "", description = data.getValue("description") as? String ?: "")
+            } catch (e: Exception) { null }
+        }.distinctBy { it.id }
+    }
+
+    suspend fun uploadIncomeType(incomeType: IncomeType) {
+        if (!isFirebaseAvailable()) return
+        val teamId = getCurrentTeamId()
+        val firestoreType = FirestoreIncomeType(id = incomeType.id, name = incomeType.name, description = incomeType.description, teamId = teamId, lastModified = System.currentTimeMillis())
+        firestore!!.collection("incomeTypes").document(incomeType.id.toString()).set(firestoreType).await()
+    }
+
+    suspend fun deleteIncomeType(typeId: Long) {
+        if (!isFirebaseAvailable()) return
+        firestore!!.collection("incomeTypes").document(typeId.toString()).update("deleted", true, "lastModified", System.currentTimeMillis()).await()
+    }
 }

@@ -11,14 +11,18 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.*
-import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
 import androidx.cardview.widget.CardView
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.textfield.TextInputEditText
 import com.magnum.cricketclub.R
 import com.magnum.cricketclub.data.*
 import com.magnum.cricketclub.data.remote.FirestoreRepository
@@ -26,7 +30,9 @@ import com.magnum.cricketclub.ui.expense.AddEditExpenseActivity
 import com.magnum.cricketclub.ui.expense.ExpenseViewModel
 import com.magnum.cricketclub.ui.expense.TransactionsActivity
 import com.magnum.cricketclub.ui.expensetype.ExpenseTypesActivity
+import com.magnum.cricketclub.ui.teamprofile.GroundFeesMaintenanceAdapter
 import com.magnum.cricketclub.ui.teamprofile.TeamLedgerActivity
+import com.magnum.cricketclub.data.sync.SyncService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -44,6 +50,8 @@ class MainActivity : BaseActivity() {
     private lateinit var userProfileRepository: UserProfileRepository
     private lateinit var firestoreRepository: FirestoreRepository
     private lateinit var contributionLedgerRepository: ContributionLedgerRepository
+    private lateinit var upcomingMatchDao: UpcomingMatchDao
+    private lateinit var syncService: SyncService
 
     private lateinit var mainContentScrollView: View
     private lateinit var unauthorizedLayout: View
@@ -70,6 +78,14 @@ class MainActivity : BaseActivity() {
     private lateinit var teamContributionContent: View
     private lateinit var teamContributionChevron: ImageView
 
+    private lateinit var groundFeesMaintenanceCard: View
+    private lateinit var groundFeesHeader: LinearLayout
+    private lateinit var groundFeesContent: View
+    private lateinit var groundFeesChevron: ImageView
+    private lateinit var rvGroundFeesMaintenance: RecyclerView
+    private lateinit var groundFeesMaintenanceAdapter: GroundFeesMaintenanceAdapter
+    private lateinit var groundFeesSyncProgressBar: ProgressBar
+
     private var currentUserProfile: UserProfile? = null
     private val currentYear = Calendar.getInstance().get(Calendar.YEAR)
     private val currentMonth = Calendar.getInstance().get(Calendar.MONTH)
@@ -89,6 +105,8 @@ class MainActivity : BaseActivity() {
         firestoreRepository = FirestoreRepository()
         val db = AppDatabase.getDatabase(application)
         contributionLedgerRepository = ContributionLedgerRepository(db.contributionLedgerDao())
+        upcomingMatchDao = db.upcomingMatchDao()
+        syncService = SyncService(applicationContext)
 
         mainContentScrollView = findViewById(R.id.mainContentScrollView)
         unauthorizedLayout = findViewById(R.id.unauthorizedLayout)
@@ -115,9 +133,17 @@ class MainActivity : BaseActivity() {
         teamContributionContent = findViewById(R.id.teamContributionContent)
         teamContributionChevron = findViewById(R.id.teamContributionChevron)
 
+        groundFeesMaintenanceCard = findViewById(R.id.groundFeesMaintenanceCard)
+        groundFeesHeader = findViewById(R.id.groundFeesHeader)
+        groundFeesContent = findViewById(R.id.groundFeesContent)
+        groundFeesChevron = findViewById(R.id.groundFeesChevron)
+        rvGroundFeesMaintenance = findViewById(R.id.rvGroundFeesMaintenance)
+        groundFeesSyncProgressBar = findViewById(R.id.groundFeesSyncProgressBar)
+
         setupOverviewSection()
         setupExpenseManagementSection()
         setupTeamContributionLedger()
+        setupGroundFeesMaintenanceSection()
 
         fabAddExpense.setOnClickListener {
             val intent = Intent(this, AddEditExpenseActivity::class.java)
@@ -163,6 +189,7 @@ class MainActivity : BaseActivity() {
         }
 
         observeData()
+        observeSyncStatus()
         setupBottomNavigation()
         checkUserPermissions()
     }
@@ -191,6 +218,7 @@ class MainActivity : BaseActivity() {
             unauthorizedLayout.visibility = View.GONE
             expenseManagementCard.visibility = if (isMaintenance) View.VISIBLE else View.GONE
             teamContributionCard.visibility = if (isMaintenance) View.VISIBLE else View.GONE
+            groundFeesMaintenanceCard.visibility = if (isMaintenance) View.VISIBLE else View.GONE
             fabAddExpense.visibility = if (isMaintenance) View.VISIBLE else View.GONE
             overviewCard.visibility = View.VISIBLE
         }
@@ -239,7 +267,7 @@ class MainActivity : BaseActivity() {
     }
 
     private fun setupTeamContributionLedger() {
-        setExpanded(teamContributionContent, teamContributionChevron, expanded = true)
+        setExpanded(teamContributionContent, teamContributionChevron, expanded = false)
         teamContributionHeader.setOnClickListener {
             val expand = teamContributionContent.visibility != View.VISIBLE
             setExpanded(teamContributionContent, teamContributionChevron, expand)
@@ -247,6 +275,32 @@ class MainActivity : BaseActivity() {
         
         teamContributionContent.findViewById<View>(R.id.btnOpenTeamLedger).setOnClickListener {
             startActivity(Intent(this, TeamLedgerActivity::class.java))
+        }
+    }
+
+    private fun setupGroundFeesMaintenanceSection() {
+        setExpanded(groundFeesContent, groundFeesChevron, expanded = false)
+        groundFeesHeader.setOnClickListener {
+            val expand = groundFeesContent.visibility != View.VISIBLE
+            setExpanded(groundFeesContent, groundFeesChevron, expand)
+            if (expand) {
+                lifecycleScope.launch {
+                    syncService.syncFromFirestore()
+                }
+            }
+        }
+
+        rvGroundFeesMaintenance.layoutManager = LinearLayoutManager(this)
+        groundFeesMaintenanceAdapter = GroundFeesMaintenanceAdapter(
+            onStatusClick = { match, teamIndex -> showUpdateGroundFeeStatusDialog(match, teamIndex) },
+            onDeleteMatch = { showDeleteMatchDialog(it) }
+        )
+        rvGroundFeesMaintenance.adapter = groundFeesMaintenanceAdapter
+
+        lifecycleScope.launch {
+            upcomingMatchDao.getAllMatches().collectLatest { matches ->
+                groundFeesMaintenanceAdapter.submitList(matches)
+            }
         }
     }
 
@@ -261,26 +315,111 @@ class MainActivity : BaseActivity() {
                 viewModel.allExpenses,
                 overviewYearState,
                 overviewMonthState
-            ) { expenses, year, monthIdx ->
+            ) { expenses: List<Expense>, year: Int, monthIdx: Int ->
                 val cal = Calendar.getInstance()
-                expenses.filter { e ->
+                expenses.filter { e: Expense ->
                     cal.timeInMillis = e.date
                     val y = cal.get(Calendar.YEAR)
                     val m = cal.get(Calendar.MONTH)
                     (y == year) && (monthIdx == -1 || m == monthIdx)
                 }
-            }.collect { filtered ->
+            }.collect { filtered: List<Expense> ->
                 val incomeTotal = filtered.filter { it.isIncome }.sumOf { it.amount }
                 val expenseTotal = filtered.filter { !it.isIncome }.sumOf { it.amount }
                 val balance = incomeTotal - expenseTotal
 
-                totalBalanceTextView.text = "₹${String.format("%.2f", balance)}"
-                totalIncomesTextView.text = "₹${String.format("%.2f", incomeTotal)}"
-                totalExpensesTextView.text = "₹${String.format("%.2f", expenseTotal)}"
+                totalBalanceTextView.text = getString(R.string.currency_format, balance)
+                totalIncomesTextView.text = getString(R.string.currency_format, incomeTotal)
+                totalExpensesTextView.text = getString(R.string.currency_format, expenseTotal)
                 
                 totalBalanceTextView.setTextColor(if (balance >= 0) Color.BLACK else Color.RED)
             }
         }
+    }
+
+    private fun observeSyncStatus() {
+        lifecycleScope.launch {
+            syncService.syncStatus.collectLatest { status ->
+                when (status) {
+                    SyncService.SyncStatus.SYNCING -> {
+                        groundFeesSyncProgressBar.visibility = View.VISIBLE
+                        rvGroundFeesMaintenance.alpha = 0.5f
+                    }
+                    else -> {
+                        groundFeesSyncProgressBar.visibility = View.GONE
+                        rvGroundFeesMaintenance.alpha = 1.0f
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showUpdateGroundFeeStatusDialog(match: UpcomingMatch, teamIndex: Int) {
+        val options = arrayOf(getString(R.string.status_pending), getString(R.string.partial_payment), getString(R.string.status_done))
+        val currentStatus = if (teamIndex == 1) match.team1FeesStatus else match.team2FeesStatus
+        val teamName = if (teamIndex == 1) match.team1 else match.team2
+        
+        val checkedItem = when (currentStatus) {
+            "DONE" -> 2
+            "PARTIAL" -> 1
+            else -> 0
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("${getString(R.string.collection_status)}: $teamName")
+            .setSingleChoiceItems(options, checkedItem) { dialog, which ->
+                when (which) {
+                    1 -> showPartialPaymentInput(match, teamIndex)
+                    2 -> updateMatchStatus(match, teamIndex, "DONE", 0.0)
+                    else -> updateMatchStatus(match, teamIndex, "PENDING", 0.0)
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
+    }
+
+    private fun showPartialPaymentInput(match: UpcomingMatch, teamIndex: Int) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_partial_payment, null)
+        val etAmount = dialogView.findViewById<TextInputEditText>(R.id.amountEditText)
+        
+        AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                val pending = etAmount.text.toString().toDoubleOrNull() ?: 0.0
+                updateMatchStatus(match, teamIndex, "PARTIAL", pending)
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
+    }
+
+    private fun updateMatchStatus(match: UpcomingMatch, teamIndex: Int, status: String, pending: Double) {
+        val updatedMatch = if (teamIndex == 1) {
+            match.copy(team1FeesStatus = status, team1PendingAmount = pending)
+        } else {
+            match.copy(team2FeesStatus = status, team2PendingAmount = pending)
+        }
+
+        lifecycleScope.launch {
+            upcomingMatchDao.updateMatch(updatedMatch)
+            syncService.syncUpcomingMatch(updatedMatch)
+            Toast.makeText(this@MainActivity, "Status updated", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showDeleteMatchDialog(match: UpcomingMatch) {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.delete))
+            .setMessage("Are you sure you want to delete this match? This will remove it from the schedule and maintenance list.")
+            .setPositiveButton(getString(R.string.delete)) { _, _ ->
+                lifecycleScope.launch {
+                    upcomingMatchDao.deleteMatch(match)
+                    syncService.deleteUpcomingMatchFromFirestore(match.id)
+                    Toast.makeText(this@MainActivity, "Match deleted", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
     }
 
     private fun exportReportToPdf() {
@@ -361,7 +500,7 @@ class MainActivity : BaseActivity() {
         yPos += 20f
         for ((name, amount) in summaryItems) {
             canvas.drawText(name, 40f, yPos, textPaint)
-            val amountStr = "₹${String.format("%.2f", amount)}"
+            val amountStr = "₹${String.format(Locale.getDefault(), "%.2f", amount)}"
             canvas.drawText(amountStr, 200f, yPos, textPaint)
             yPos += 15f
         }
@@ -381,13 +520,10 @@ class MainActivity : BaseActivity() {
 
         for (expense in expenses) {
             if (yPos > 800) {
-                // For simplicity, we limit to one page in this fix
-                // In a full implementation, we would start a new page
                 break 
             }
             canvas.drawText(dateFormat.format(Date(expense.date)), 40f, yPos, textPaint)
             
-            // Category Type
             val typeName = if (expense.isIncome) {
                 val incomeTypeId = expense.incomeTypeId ?: expense.expenseTypeId
                 incomeTypes[incomeTypeId]?.name ?: "Unknown"
@@ -397,15 +533,12 @@ class MainActivity : BaseActivity() {
             val typeNameTruncated = if (typeName.length > 25) typeName.substring(0, 22) + "..." else typeName
             canvas.drawText(typeNameTruncated, 110f, yPos, textPaint)
 
-            // Description
             val desc = if (expense.description.length > 25) expense.description.substring(0, 22) + "..." else expense.description
             canvas.drawText(desc, 280f, yPos, textPaint)
             
-            // Income/Expense Indicator
             canvas.drawText(if (expense.isIncome) "Inc" else "Exp", 440f, yPos, textPaint)
             
-            // Amount
-            val amountStr = String.format("%.2f", expense.amount)
+            val amountStr = String.format(Locale.getDefault(), "%.2f", expense.amount)
             canvas.drawText(amountStr, 490f, yPos, textPaint)
             
             yPos += 20f
@@ -418,11 +551,11 @@ class MainActivity : BaseActivity() {
         yPos += 20f
         canvas.drawLine(40f, yPos, 550f, yPos, paint)
         yPos += 20f
-        canvas.drawText("Total Income: ₹${String.format("%.2f", totalIncome)}", 40f, yPos, headerPaint)
+        canvas.drawText("Total Income: ₹${String.format(Locale.getDefault(), "%.2f", totalIncome)}", 40f, yPos, headerPaint)
         yPos += 20f
-        canvas.drawText("Total Expense: ₹${String.format("%.2f", totalExpense)}", 40f, yPos, headerPaint)
+        canvas.drawText("Total Expense: ₹${String.format(Locale.getDefault(), "%.2f", totalExpense)}", 40f, yPos, headerPaint)
         yPos += 20f
-        canvas.drawText("Balance: ₹${String.format("%.2f", balance)}", 40f, yPos, headerPaint)
+        canvas.drawText("Balance: ₹${String.format(Locale.getDefault(), "%.2f", balance)}", 40f, yPos, headerPaint)
 
         pdfDocument.finishPage(page)
 
@@ -466,7 +599,6 @@ class MainActivity : BaseActivity() {
             }
             startActivity(Intent.createChooser(intent, "Open Report"))
         } catch (e: Exception) {
-            // No app to open PDF
         }
     }
 

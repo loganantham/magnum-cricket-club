@@ -35,7 +35,7 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Upcoming Match Card -->
+            <!-- Schedule Matches Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/upcomingMatchFormCard"
                 android:layout_width="match_parent"
@@ -72,6 +72,16 @@
                             android:textStyle="bold"
                             android:textColor="@color/text_primary" />
 
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnAddMatch"
+                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/add_upcoming_match"
+                            android:layout_marginEnd="8dp"
+                            android:visibility="gone"
+                            app:icon="@android:drawable/ic_input_add" />
+
                         <ImageView
                             android:id="@+id/upcomingMatchChevron"
                             android:layout_width="24dp"
@@ -81,567 +91,155 @@
                             android:rotation="0" />
                     </LinearLayout>
 
-                    <LinearLayout
+                    <FrameLayout
                         android:id="@+id/upcomingMatchContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:id="@+id/rvScheduledMatches"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:nestedScrollingEnabled="false" />
+
+                            <TextView
+                                android:id="@+id/noMatchesText"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/no_upcoming_match"
+                                android:gravity="center"
+                                android:padding="16dp"
+                                android:visibility="gone" />
+                        </LinearLayout>
+
+                        <ProgressBar
+                            android:id="@+id/syncProgressBar"
+                            android:layout_width="32dp"
+                            android:layout_height="32dp"
+                            android:layout_gravity="center"
+                            android:visibility="gone" />
+
+                    </FrameLayout>
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Player Availability Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/playerAvailabilityCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/card_background"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:id="@+id/playerAvailabilityHeader"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Player Availability"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <ImageView
+                            android:id="@+id/playerAvailabilityChevron"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@android:drawable/arrow_down_float"
+                            android:tint="@color/text_hint" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/playerAvailabilityContent"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:visibility="gone">
 
-                        <!-- Sub-section: Match Details -->
-                        <LinearLayout
-                            android:id="@+id/matchDetailsHeader"
-                            android:layout_width="match_parent"
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnExportAvailability"
+                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:paddingTop="8dp"
-                            android:paddingBottom="8dp"
-                            android:layout_marginTop="8dp">
+                            android:layout_gravity="end"
+                            android:text="Export Report"
+                            app:icon="@android:drawable/ic_menu_save" />
 
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Match Details"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/text_primary" />
-
-                            <ImageView
-                                android:id="@+id/matchDetailsChevron"
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@android:drawable/arrow_down_float"
-                                android:tint="@color/text_hint" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/matchDetailsContent"
-                            android:layout_width="match_parent"
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/availabilityFilterGroup"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:visibility="gone">
-
-                            <!-- Match Date -->
-                            <LinearLayout
-                                android:id="@+id/matchDateContainer"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:background="@drawable/input_field_background"
-                                android:paddingStart="16dp"
-                                android:paddingEnd="16dp"
-                                android:paddingTop="12dp"
-                                android:paddingBottom="12dp"
-                                android:minHeight="64dp"
-                                android:gravity="top|start"
-                                android:layout_marginBottom="12dp"
-                                android:clickable="true"
-                                android:focusable="true">
-
-                                <ImageView
-                                    android:layout_width="24dp"
-                                    android:layout_height="24dp"
-                                    android:src="@android:drawable/ic_menu_my_calendar"
-                                    android:tint="#757575"
-                                    android:layout_marginEnd="12dp" />
-
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="@string/match_date"
-                                        android:textSize="14sp"
-                                        android:textColor="@color/text_primary" />
-
-                                    <TextView
-                                        android:id="@+id/matchDateValueTextView"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:text="@string/select_match_date"
-                                        android:textSize="14sp"
-                                        android:textColor="@color/text_hint"
-                                        android:layout_marginTop="4dp" />
-
-                                </LinearLayout>
-                            </LinearLayout>
-
-                            <!-- Team 1 -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:background="@drawable/input_field_background"
-                                android:paddingStart="16dp"
-                                android:paddingEnd="16dp"
-                                android:paddingTop="12dp"
-                                android:paddingBottom="12dp"
-                                android:minHeight="64dp"
-                                android:gravity="top|start"
-                                android:layout_marginBottom="12dp">
-                                <ImageView
-                                    android:layout_width="24dp"
-                                    android:layout_height="24dp"
-                                    android:src="@drawable/ic_group"
-                                    android:tint="#757575"
-                                    android:layout_marginEnd="12dp" />
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="@string/team_1"
-                                        android:textSize="14sp"
-                                        android:textColor="@color/text_primary" />
-                                    <EditText
-                                        android:id="@+id/team1EditText"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:inputType="textPersonName"
-                                        android:background="@android:color/transparent"
-                                        android:textColor="#212121"
-                                        android:textSize="14sp"
-                                        android:paddingTop="6dp" />
-                                </LinearLayout>
-                            </LinearLayout>
-
-                            <!-- Team 2 -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:background="@drawable/input_field_background"
-                                android:paddingStart="16dp"
-                                android:paddingEnd="16dp"
-                                android:paddingTop="12dp"
-                                android:paddingBottom="12dp"
-                                android:minHeight="64dp"
-                                android:gravity="top|start"
-                                android:layout_marginBottom="12dp">
-                                <ImageView
-                                    android:layout_width="24dp"
-                                    android:layout_height="24dp"
-                                    android:src="@drawable/ic_group"
-                                    android:tint="#757575"
-                                    android:layout_marginEnd="12dp" />
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="@string/team_2"
-                                        android:textSize="14sp"
-                                        android:textColor="@color/text_primary" />
-                                    <EditText
-                                        android:id="@+id/team2EditText"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:inputType="textPersonName"
-                                        android:background="@android:color/transparent"
-                                        android:textColor="#212121"
-                                        android:textSize="14sp"
-                                        android:paddingTop="6dp" />
-                                </LinearLayout>
-                            </LinearLayout>
-
-                            <!-- Ground Name -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:background="@drawable/input_field_background"
-                                android:paddingStart="16dp"
-                                android:paddingEnd="16dp"
-                                android:paddingTop="12dp"
-                                android:paddingBottom="12dp"
-                                android:minHeight="64dp"
-                                android:gravity="top|start"
-                                android:layout_marginBottom="12dp">
-                                <ImageView
-                                    android:layout_width="24dp"
-                                    android:layout_height="24dp"
-                                    android:src="@drawable/ic_group"
-                                    android:tint="#757575"
-                                    android:layout_marginEnd="12dp" />
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="@string/ground_name"
-                                        android:textSize="14sp"
-                                        android:textColor="@color/text_primary" />
-                                    <EditText
-                                        android:id="@+id/groundNameEditText"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:inputType="text"
-                                        android:background="@android:color/transparent"
-                                        android:textColor="#212121"
-                                        android:textSize="14sp"
-                                        android:paddingTop="6dp" />
-                                </LinearLayout>
-                            </LinearLayout>
-
-                            <!-- Ground Location -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:background="@drawable/input_field_background"
-                                android:paddingStart="16dp"
-                                android:paddingEnd="16dp"
-                                android:paddingTop="12dp"
-                                android:paddingBottom="12dp"
-                                android:minHeight="64dp"
-                                android:gravity="top|start"
-                                android:layout_marginBottom="12dp">
-                                <ImageView
-                                    android:layout_width="24dp"
-                                    android:layout_height="24dp"
-                                    android:src="@drawable/ic_share"
-                                    android:tint="#757575"
-                                    android:layout_marginEnd="12dp" />
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="@string/ground_location"
-                                        android:textSize="14sp"
-                                        android:textColor="@color/text_primary" />
-                                    <EditText
-                                        android:id="@+id/groundLocationEditText"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:inputType="textPostalAddress"
-                                        android:background="@android:color/transparent"
-                                        android:textColor="#212121"
-                                        android:textSize="14sp"
-                                        android:paddingTop="6dp" />
-                                </LinearLayout>
-                            </LinearLayout>
-
-                            <!-- Ground Fees -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:background="@drawable/input_field_background"
-                                android:paddingStart="16dp"
-                                android:paddingEnd="16dp"
-                                android:paddingTop="12dp"
-                                android:paddingBottom="12dp"
-                                android:minHeight="64dp"
-                                android:gravity="top|start"
-                                android:layout_marginBottom="12dp">
-                                <ImageView
-                                    android:layout_width="24dp"
-                                    android:layout_height="24dp"
-                                    android:src="@drawable/ic_money"
-                                    android:tint="#757575"
-                                    android:layout_marginEnd="12dp" />
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Ground Fees"
-                                        android:textSize="14sp"
-                                        android:textColor="@color/text_primary" />
-                                    <EditText
-                                        android:id="@+id/groundFeesEditText"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:inputType="numberDecimal"
-                                        android:background="@android:color/transparent"
-                                        android:textColor="#212121"
-                                        android:textSize="14sp"
-                                        android:paddingTop="6dp" />
-                                </LinearLayout>
-                            </LinearLayout>
-
-                            <!-- Overs -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:background="@drawable/input_field_background"
-                                android:paddingStart="16dp"
-                                android:paddingEnd="16dp"
-                                android:paddingTop="12dp"
-                                android:paddingBottom="12dp"
-                                android:minHeight="64dp"
-                                android:gravity="top|start"
-                                android:layout_marginBottom="12dp">
-                                <ImageView
-                                    android:layout_width="24dp"
-                                    android:layout_height="24dp"
-                                    android:src="@drawable/ic_settings"
-                                    android:tint="#757575"
-                                    android:layout_marginEnd="12dp" />
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Overs"
-                                        android:textSize="14sp"
-                                        android:textColor="@color/text_primary" />
-                                    <EditText
-                                        android:id="@+id/oversEditText"
-                                        android:layout_width="match_parent"
-                                        android:layout_height="wrap_content"
-                                        android:inputType="number"
-                                        android:background="@android:color/transparent"
-                                        android:textColor="#212121"
-                                        android:textSize="14sp"
-                                        android:paddingTop="6dp" />
-                                </LinearLayout>
-                            </LinearLayout>
-
-                            <!-- Ball Provided Selection -->
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:gravity="center_vertical"
-                                android:layout_marginBottom="12dp"
-                                android:paddingStart="4dp">
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:text="Ball Provided?"
-                                    android:textSize="14sp"
-                                    android:textColor="@color/text_primary" />
-                                <RadioGroup
-                                    android:id="@+id/ballProvidedRadioGroup"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:orientation="horizontal">
-                                    <RadioButton
-                                        android:id="@+id/ballProvidedYes"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Yes" />
-                                    <RadioButton
-                                        android:id="@+id/ballProvidedNo"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="No"
-                                        android:checked="true" />
-                                </RadioGroup>
-                            </LinearLayout>
-
-                            <!-- Ball Details (Conditional) -->
-                            <LinearLayout
-                                android:id="@+id/ballDetailsLayout"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:visibility="gone">
-                                <LinearLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:orientation="horizontal"
-                                    android:background="@drawable/input_field_background"
-                                    android:paddingStart="16dp"
-                                    android:paddingEnd="16dp"
-                                    android:paddingTop="12dp"
-                                    android:paddingBottom="12dp"
-                                    android:minHeight="64dp"
-                                    android:gravity="top|start"
-                                    android:layout_marginBottom="12dp">
-                                    <LinearLayout
-                                        android:layout_width="0dp"
-                                        android:layout_height="wrap_content"
-                                        android:layout_weight="1"
-                                        android:orientation="vertical">
-                                        <TextView
-                                            android:layout_width="wrap_content"
-                                            android:layout_height="wrap_content"
-                                            android:text="No. of Balls"
-                                            android:textSize="14sp"
-                                            android:textColor="@color/text_primary" />
-                                        <EditText
-                                            android:id="@+id/noOfBallsEditText"
-                                            android:layout_width="match_parent"
-                                            android:layout_height="wrap_content"
-                                            android:inputType="number"
-                                            android:background="@android:color/transparent"
-                                            android:textColor="#212121"
-                                            android:textSize="14sp" />
-                                    </LinearLayout>
-                                </LinearLayout>
-                                <LinearLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:orientation="horizontal"
-                                    android:background="@drawable/input_field_background"
-                                    android:paddingStart="16dp"
-                                    android:paddingEnd="16dp"
-                                    android:paddingTop="12dp"
-                                    android:paddingBottom="12dp"
-                                    android:minHeight="64dp"
-                                    android:gravity="center_vertical"
-                                    android:layout_marginBottom="16dp">
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Ball Name"
-                                        android:textSize="14sp"
-                                        android:textColor="@color/text_primary"
-                                        android:layout_marginEnd="12dp" />
-                                    <Spinner
-                                        android:id="@+id/ballNameSpinner"
-                                        android:layout_width="0dp"
-                                        android:layout_height="wrap_content"
-                                        android:layout_weight="1" />
-                                </LinearLayout>
-                            </LinearLayout>
+                            android:layout_gravity="center"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="8dp"
+                            app:singleSelection="true"
+                            app:selectionRequired="true"
+                            app:checkedButton="@+id/filterAll">
 
                             <com.google.android.material.button.MaterialButton
-                                android:id="@+id/saveMatchButton"
-                                android:layout_width="match_parent"
+                                android:id="@+id/filterAll"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@string/save_match_details"
-                                app:backgroundTint="@color/primary_color" />
-                        </LinearLayout>
-
-                        <!-- Sub-section: Player Availability -->
-                        <LinearLayout
-                            android:id="@+id/playerAvailabilityHeader"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:paddingTop="8dp"
-                            android:paddingBottom="8dp"
-                            android:layout_marginTop="8dp">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Player Availability"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/text_primary" />
-
-                            <ImageView
-                                android:id="@+id/playerAvailabilityChevron"
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@android:drawable/arrow_down_float"
-                                android:tint="@color/text_hint" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:id="@+id/playerAvailabilityContent"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:visibility="gone">
+                                android:text="All" />
 
                             <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnExportAvailability"
-                                style="@style/Widget.MaterialComponents.Button.TextButton"
+                                android:id="@+id/filterAvailable"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_gravity="end"
-                                android:text="Export Report"
-                                app:icon="@android:drawable/ic_menu_save" />
+                                android:text="Available" />
 
-                            <!-- Filter Section -->
-                            <com.google.android.material.button.MaterialButtonToggleGroup
-                                android:id="@+id/availabilityFilterGroup"
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/filterNotAvailable"
+                                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:layout_gravity="center"
-                                android:layout_marginTop="8dp"
-                                android:layout_marginBottom="8dp"
-                                app:singleSelection="true"
-                                app:selectionRequired="true"
-                                app:checkedButton="@+id/filterAll">
+                                android:text="Not Available" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/filterAll"
-                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="All"
-                                    android:textSize="12sp" />
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/availabilityRecyclerView"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:nestedScrollingEnabled="false" />
 
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/filterAvailable"
-                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Available"
-                                    android:textSize="12sp" />
-
-                                <com.google.android.material.button.MaterialButton
-                                    android:id="@+id/filterNotAvailable"
-                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Not Available"
-                                    android:textSize="12sp" />
-
-                            </com.google.android.material.button.MaterialButtonToggleGroup>
-
-                            <androidx.recyclerview.widget.RecyclerView
-                                android:id="@+id/availabilityRecyclerView"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:nestedScrollingEnabled="false"
-                                android:layout_marginTop="8dp" />
-
-                            <TextView
-                                android:id="@+id/emptyAvailabilityTextView"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:text="No availability updates yet"
-                                android:textSize="14sp"
-                                android:textColor="@color/text_hint"
-                                android:gravity="center"
-                                android:padding="16dp"
-                                android:visibility="gone" />
-
-                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/emptyAvailabilityTextView"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="No availability updates yet"
+                            android:gravity="center"
+                            android:padding="16dp"
+                            android:visibility="gone" />
 
                     </LinearLayout>
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Team Members Card -->
@@ -697,50 +295,6 @@
                         android:orientation="vertical"
                         android:visibility="gone">
 
-                        <!-- Table Header -->
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp"
-                            app:cardCornerRadius="8dp"
-                            app:cardElevation="2dp">
-
-                            <TableLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:stretchColumns="*">
-
-                                <TableRow
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:background="?attr/colorPrimary"
-                                    android:padding="12dp">
-
-                                    <TextView
-                                        android:layout_width="0dp"
-                                        android:layout_height="wrap_content"
-                                        android:layout_weight="2"
-                                        android:text="Name"
-                                        android:textColor="@android:color/white"
-                                        android:textStyle="bold"
-                                        android:textSize="14sp" />
-
-                                    <TextView
-                                        android:layout_width="0dp"
-                                        android:layout_height="wrap_content"
-                                        android:layout_weight="1"
-                                        android:text="Role"
-                                        android:textColor="@android:color/white"
-                                        android:textStyle="bold"
-                                        android:textSize="14sp" />
-
-                                </TableRow>
-
-                            </TableLayout>
-
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <!-- Table Content -->
                         <androidx.recyclerview.widget.RecyclerView
                             android:id="@+id/teamMembersRecyclerView"
                             android:layout_width="match_parent"

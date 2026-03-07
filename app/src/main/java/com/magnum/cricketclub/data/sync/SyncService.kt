@@ -4,6 +4,9 @@ import android.content.Context
 import com.magnum.cricketclub.data.*
 import com.magnum.cricketclub.data.remote.FirestoreRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
@@ -16,24 +19,25 @@ class SyncService(private val context: Context) {
     private val appConfigDao = database.appConfigDao()
     private val contributionLedgerDao = database.contributionLedgerDao()
     private val userProfileDao = database.userProfileDao()
+    private val upcomingMatchDao = database.upcomingMatchDao()
 
     enum class SyncStatus {
         IDLE, SYNCING, SUCCESS, ERROR
     }
 
-    var syncStatus: SyncStatus = SyncStatus.IDLE
-        private set
+    private val _syncStatus = MutableStateFlow(SyncStatus.IDLE)
+    val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
 
     /**
      * Full sync: Downloads all data from Firestore and updates local database
      */
     suspend fun syncFromFirestore() {
         if (!firestoreRepo.isUserSignedIn()) {
-            syncStatus = SyncStatus.ERROR
+            _syncStatus.value = SyncStatus.ERROR
             return
         }
 
-        syncStatus = SyncStatus.SYNCING
+        _syncStatus.value = SyncStatus.SYNCING
 
         try {
             withContext(Dispatchers.IO) {
@@ -90,10 +94,31 @@ class SyncService(private val context: Context) {
                     userProfileDao.insert(profile)
                 }
 
-                syncStatus = SUCCESS
+                // Download Upcoming Matches
+                val remoteMatches = firestoreRepo.downloadUpcomingMatches()
+                val localMatches = upcomingMatchDao.getAllMatches().first()
+                
+                // Delete local matches that are not in remote or are marked as deleted
+                for (localMatch in localMatches) {
+                    val remoteMatch = remoteMatches.find { it.id == localMatch.id }
+                    if (remoteMatch == null) {
+                        upcomingMatchDao.deleteMatch(localMatch)
+                    }
+                }
+
+                for (remoteMatch in remoteMatches) {
+                    val localMatch = localMatches.find { it.id == remoteMatch.id }
+                    if (localMatch == null) {
+                        upcomingMatchDao.insertMatch(remoteMatch)
+                    } else {
+                        upcomingMatchDao.updateMatch(remoteMatch)
+                    }
+                }
+
+                _syncStatus.value = SyncStatus.SUCCESS
             }
         } catch (e: Exception) {
-            syncStatus = ERROR
+            _syncStatus.value = SyncStatus.ERROR
             e.printStackTrace()
         }
     }
@@ -103,11 +128,11 @@ class SyncService(private val context: Context) {
      */
     suspend fun syncToFirestore() {
         if (!firestoreRepo.isUserSignedIn()) {
-            syncStatus = ERROR
+            _syncStatus.value = SyncStatus.ERROR
             return
         }
 
-        syncStatus = SYNCING
+        _syncStatus.value = SyncStatus.SYNCING
 
         try {
             withContext(Dispatchers.IO) {
@@ -135,10 +160,16 @@ class SyncService(private val context: Context) {
                     firestoreRepo.uploadUserProfile(profile)
                 }
 
-                syncStatus = SUCCESS
+                // Upload Upcoming Matches
+                val localMatches = upcomingMatchDao.getAllMatches().first()
+                for (match in localMatches) {
+                    firestoreRepo.uploadUpcomingMatch(match)
+                }
+
+                _syncStatus.value = SyncStatus.SUCCESS
             }
         } catch (e: Exception) {
-            syncStatus = ERROR
+            _syncStatus.value = SyncStatus.ERROR
             e.printStackTrace()
         }
     }
@@ -230,6 +261,22 @@ class SyncService(private val context: Context) {
     }
 
     /**
+     * Upload a single upcoming match
+     */
+    suspend fun syncUpcomingMatch(match: UpcomingMatch) {
+        if (firestoreRepo.isUserSignedIn()) {
+            _syncStatus.value = SyncStatus.SYNCING
+            try {
+                firestoreRepo.uploadUpcomingMatch(match)
+                _syncStatus.value = SyncStatus.SUCCESS
+            } catch (e: Exception) {
+                _syncStatus.value = SyncStatus.ERROR
+                e.printStackTrace()
+            }
+        }
+    }
+
+    /**
      * Delete expense from Firestore
      */
     suspend fun deleteExpenseFromFirestore(expenseId: Long) {
@@ -268,9 +315,19 @@ class SyncService(private val context: Context) {
         }
     }
 
-    companion object {
-        private val SUCCESS = SyncStatus.SUCCESS
-        private val ERROR = SyncStatus.ERROR
-        private val SYNCING = SyncStatus.SYNCING
+    /**
+     * Delete upcoming match from Firestore
+     */
+    suspend fun deleteUpcomingMatchFromFirestore(matchId: Long) {
+        if (firestoreRepo.isUserSignedIn()) {
+            _syncStatus.value = SyncStatus.SYNCING
+            try {
+                firestoreRepo.deleteUpcomingMatch(matchId)
+                _syncStatus.value = SyncStatus.SUCCESS
+            } catch (e: Exception) {
+                _syncStatus.value = SyncStatus.ERROR
+                e.printStackTrace()
+            }
+        }
     }
 }

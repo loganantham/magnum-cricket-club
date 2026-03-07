@@ -11,7 +11,8 @@ data class UserProfile(
     val playerPreference: String? = null, // Batsman, Bowler, All Rounder, Wicket Keeper
     val mobileNumber: String? = null,
     val alternateMobileNumber: String? = null,
-    val additionalResponsibility: String? = null // Finance Maintenance, Finance Contributor, Manager, Secretary, Captain, Vice Captain, Player
+    val additionalResponsibility: String? = null, // Finance Maintenance, Finance Contributor, Manager, Secretary, Captain, Vice Captain, Player
+    val userId: String = ""
 ) {
     fun isAdmin(): Boolean {
         val responsibilities = additionalResponsibility?.split(",")?.map { it.trim() } ?: emptyList()

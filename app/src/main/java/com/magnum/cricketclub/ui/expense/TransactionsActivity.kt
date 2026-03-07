@@ -2,6 +2,8 @@ package com.magnum.cricketclub.ui.expense
 
 import android.os.Bundle
 import android.view.MenuItem
+import android.view.View
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
@@ -22,6 +24,8 @@ class TransactionsActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: ExpenseAdapter
     private lateinit var userProfileRepository: UserProfileRepository
+    private lateinit var progressBar: ProgressBar
+    private lateinit var contentLayout: View
     private val firestoreRepository = FirestoreRepository()
     
     private var filterType: String = TYPE_ALL
@@ -48,6 +52,8 @@ class TransactionsActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this)[ExpenseViewModel::class.java]
         userProfileRepository = UserProfileRepository(application)
         recyclerView = findViewById(R.id.transactionsRecyclerView)
+        progressBar = findViewById(R.id.progressBar)
+        contentLayout = findViewById(R.id.transactionsContentLayout)
         
         adapter = ExpenseAdapter(
             onEditClick = { expense ->
@@ -68,8 +74,15 @@ class TransactionsActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
         
+        showLoading(true)
         checkUserPermissions()
         observeData()
+        fetchUserNames()
+    }
+
+    private fun showLoading(isLoading: Boolean) {
+        progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+        contentLayout.visibility = if (isLoading) View.GONE else View.VISIBLE
     }
 
     private fun checkUserPermissions() {
@@ -84,6 +97,23 @@ class TransactionsActivity : AppCompatActivity() {
             
             val isMaintenance = profile?.isFinanceMaintenance() == true
             adapter.setShowActions(isMaintenance)
+        }
+    }
+
+    private fun fetchUserNames() {
+        lifecycleScope.launch {
+            try {
+                val profiles = firestoreRepository.downloadAllUserProfiles()
+                val nameMap = profiles.filter { it.userId.isNotEmpty() && !it.name.isNullOrEmpty() }
+                    .associate { it.userId to it.name!! }
+                adapter.setUserNames(nameMap)
+            } catch (e: Exception) {
+                // Fallback to local if needed
+                val localProfiles = userProfileRepository.getAllUserProfiles()
+                val nameMap = localProfiles.filter { it.userId.isNotEmpty() && !it.name.isNullOrEmpty() }
+                    .associate { it.userId to it.name!! }
+                adapter.setUserNames(nameMap)
+            }
         }
     }
 
@@ -144,6 +174,7 @@ class TransactionsActivity : AppCompatActivity() {
                 
                 // Show most recent first in the list
                 adapter.submitList(filtered.sortedByDescending { it.date })
+                showLoading(false)
             }
         }
     }
